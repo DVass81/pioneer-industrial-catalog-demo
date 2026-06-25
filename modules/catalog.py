@@ -5,13 +5,8 @@ from html import escape
 import streamlit as st
 
 try:
-    from modules.cart import add_to_cart, effective_price
+    from modules.cart import add_to_cart
 except ImportError:
-    def effective_price(row, customer: dict) -> float:
-        base = float(row.get("customer_specific_price", row.get("price", 0)) or 0)
-        multiplier = float(customer.get("pricing_multiplier", 1.0))
-        return round(base * multiplier, 2)
-
     def add_to_cart(product_id: str, quantity: int) -> None:
         quantity = max(1, int(quantity))
         cart = st.session_state.setdefault("cart", {})
@@ -48,19 +43,16 @@ def apply_catalog_styles() -> None:
         .product-spec { border: 1px solid #E7EAF0; border-radius: 6px; padding: .42rem .5rem; background: #FBFCFE; }
         .product-spec label { display: block; margin-bottom: .1rem; color: #687386; font-size: .66rem; font-weight: 800; text-transform: uppercase; }
         .product-spec span { color: #101722; font-size: .78rem; font-weight: 800; overflow-wrap: anywhere; }
-        .card-price { display: flex; align-items: baseline; gap: .25rem; margin: .55rem 0 .45rem; font-size: 1.28rem; }
         .badge { border: 1px solid transparent; letter-spacing: .01rem; }
         .badge-stock { border-color: #BFEAD0; }
         .badge-low { border-color: #FFD6A8; }
         .badge-special { border-color: #D9DEE7; }
         .badge-reorder { border-color: #F2E49A; }
-        .badge-icc { box-shadow: inset 0 -1px 0 rgba(0,0,0,.18); }
+        .badge-featured { box-shadow: inset 0 -1px 0 rgba(0,0,0,.18); }
         .detail-shell { border: 1px solid #E0E3E8; border-radius: 8px; padding: 1rem; background: #FFFFFF; box-shadow: 0 8px 20px rgba(16,23,34,.06); }
         .detail-title { margin: .35rem 0 .25rem; font-size: 1.55rem; line-height: 1.1; font-weight: 900; color: #101722; }
         .detail-subtitle { color: #56616F; font-size: .85rem; font-weight: 700; }
         .detail-description { color: #2E3744; margin: .8rem 0; line-height: 1.45; }
-        .detail-price { margin: .75rem 0 .25rem; font-size: 1.65rem; font-weight: 900; color: #101722; }
-        .detail-price span { color: #56616F; font-size: .9rem; font-weight: 700; }
         .detail-spec-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .9rem; }
         .detail-spec { border: 1px solid #E7EAF0; border-radius: 6px; padding: .65rem; background: #FBFCFE; }
         .detail-spec label { display: block; color: #687386; font-size: .7rem; font-weight: 900; text-transform: uppercase; margin-bottom: .15rem; }
@@ -71,39 +63,12 @@ def apply_catalog_styles() -> None:
         unsafe_allow_html=True,
     )
 
-def _customer_price(value, customer: dict) -> float | None:
-    if value is None:
-        return None
-    try:
-        return float(value)
-    except (TypeError, ValueError):
-        pass
-
-    customer_name = str(customer.get("customer_name", "")).strip()
-    for part in str(value).split(";"):
-        if "=" not in part:
-            continue
-        name, price = part.split("=", 1)
-        if name.strip() == customer_name:
-            try:
-                return float(price.strip())
-            except ValueError:
-                return None
-    return None
-
-
-def prepare_catalog_products(products, customer: dict):
+def prepare_catalog_products(products, customer: dict | None = None):
     prepared = products.copy()
     if "sku" not in prepared.columns and "SKU / Pioneer part number" in prepared.columns:
         prepared["sku"] = prepared["SKU / Pioneer part number"]
     if "image_url" not in prepared.columns and "image_ref" in prepared.columns:
         prepared["image_url"] = prepared["image_ref"]
-    if "customer_specific_price" in prepared.columns:
-        prepared["customer_specific_price"] = prepared["customer_specific_price"].apply(lambda value: _customer_price(value, customer))
-    if "customer_specific_price" not in prepared.columns or prepared["customer_specific_price"].isna().all():
-        prepared["customer_specific_price"] = prepared["price"]
-    else:
-        prepared["customer_specific_price"] = prepared["customer_specific_price"].fillna(prepared["price"])
     return prepared
 
 
@@ -164,7 +129,7 @@ def _relevance_score(row, search: str) -> int:
     return score
 
 
-def filter_products(products, search, category, subcategory, in_stock_only, icc_only):
+def filter_products(products, search, category, subcategory, in_stock_only, featured_only):
     filtered = products.copy()
     filtered["_catalog_relevance"] = 0
     if search:
@@ -179,7 +144,7 @@ def filter_products(products, search, category, subcategory, in_stock_only, icc_
         filtered = filtered.loc[filtered["subcategory"] == subcategory]
     if in_stock_only:
         filtered = filtered.loc[filtered["quantity_in_stock"] > 0]
-    if icc_only:
+    if featured_only:
         filtered = filtered.loc[filtered["is_icc_supply"]]
     return filtered
 
@@ -187,8 +152,6 @@ def filter_products(products, search, category, subcategory, in_stock_only, icc_
 def sort_products(products, sort_by):
     if sort_by == "Stock":
         return products.sort_values(["quantity_in_stock", "_catalog_relevance", "product_name"], ascending=[False, False, True])
-    if sort_by == "Price":
-        return products.sort_values(["price", "product_name"], ascending=[True, True])
     if sort_by == "Category":
         return products.sort_values(["category", "subcategory", "product_name"])
     if "_catalog_relevance" in products.columns and products["_catalog_relevance"].sum() > 0:
@@ -199,9 +162,9 @@ def sort_products(products, sort_by):
     return products.sort_values(["is_icc_supply", "quantity_in_stock", "product_name"], ascending=[False, False, True])
 
 
-def render_catalog_page(products, customer: dict) -> None:
+def render_catalog_page(products, customer: dict | None = None) -> None:
     apply_catalog_styles()
-    products = prepare_catalog_products(products, customer)
+    products = prepare_catalog_products(products)
     st.markdown('<div class="page-kicker">Industrial Catalog</div>', unsafe_allow_html=True)
     st.title("Find the supplies that keep the line moving")
 
@@ -212,19 +175,16 @@ def render_catalog_page(products, customer: dict) -> None:
         category = top[1].selectbox("Category", category_options)
         sub_source = products if category == "All" else products.loc[products["category"] == category]
         subcategory = top[2].selectbox("Subcategory", ["All"] + sorted(sub_source["subcategory"].unique().tolist()))
-        sort_by = top[3].selectbox("Sort by", ["Relevance", "Stock", "Price", "Category"])
+        sort_by = top[3].selectbox("Sort by", ["Relevance", "Stock", "Category"])
         toggles = st.columns([1.1, 1.1, 3.8])
         in_stock_only = toggles[0].toggle("In-stock only")
-        icc_only = toggles[1].toggle("ICC supplies")
+        featured_only = toggles[1].toggle("Featured")
         toggles[2].markdown(
             '<div class="catalog-filter-note">Use filters together for fast reorder, sourcing, and quote-building workflows.</div>',
             unsafe_allow_html=True,
         )
 
-    filtered = sort_products(filter_products(products, search, category, subcategory, in_stock_only, icc_only), sort_by)
-
-    if customer["customer_name"] == "ICC International" and not icc_only:
-        st.markdown('<div class="recommendation-strip">ICC International recommended supplies are highlighted with red tags.</div>', unsafe_allow_html=True)
+    filtered = sort_products(filter_products(products, search, category, subcategory, in_stock_only, featured_only), sort_by)
 
     st.markdown(
         f"""
@@ -235,11 +195,11 @@ def render_catalog_page(products, customer: dict) -> None:
         """,
         unsafe_allow_html=True,
     )
-    render_product_grid(filtered, customer)
-    render_product_detail_modal(products, customer)
+    render_product_grid(filtered)
+    render_product_detail_modal(products)
 
 
-def render_product_grid(products, customer: dict) -> None:
+def render_product_grid(products, customer: dict | None = None) -> None:
     if products.empty:
         st.warning("No products match the current filters.")
         return
@@ -247,12 +207,11 @@ def render_product_grid(products, customer: dict) -> None:
     for chunk_start in range(0, len(products), 3):
         cols = st.columns(3)
         for col, (_, row) in zip(cols, products.iloc[chunk_start : chunk_start + 3].iterrows()):
-            render_product_card(col, row, customer)
+            render_product_card(col, row)
 
 
-def render_product_card(col, row, customer: dict) -> None:
+def render_product_card(col, row, customer: dict | None = None) -> None:
     badge_text, badge_class = stock_badge(row)
-    price = effective_price(row, customer)
     product_id = row["product_id"]
     in_stock = int(row["quantity_in_stock"]) > 0
     stock_qty = int(row["quantity_in_stock"])
@@ -262,7 +221,7 @@ def render_product_card(col, row, customer: dict) -> None:
     with col:
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
         st.image(row["image_url"], use_container_width=True)
-        icc_tag = '<span class="badge badge-icc">ICC</span>' if bool(row["is_icc_supply"]) else ""
+        featured_tag = '<span class="badge badge-featured">Featured</span>' if bool(row["is_icc_supply"]) else ""
         st.markdown(
             f"""
             <div class="product-meta">
@@ -270,7 +229,7 @@ def render_product_card(col, row, customer: dict) -> None:
                 <span>SKU {escape(str(row['sku']))}</span>
             </div>
             <h3>{escape(str(row['product_name']))}</h3>
-            <div class="product-badges"><span class="{badge_class}">{escape(badge_text)}</span>{icc_tag}</div>
+            <div class="product-badges"><span class="{badge_class}">{escape(badge_text)}</span>{featured_tag}</div>
             <p>{escape(str(row['description']))}</p>
             <div class="product-spec-strip">
                 <div class="product-spec"><label>MPN</label><span>{escape(str(row['manufacturer_part_number']))}</span></div>
@@ -278,7 +237,6 @@ def render_product_card(col, row, customer: dict) -> None:
                 <div class="product-spec"><label>Lead</label><span>{lead_time}</span></div>
                 <div class="product-spec"><label>Bin</label><span>{warehouse}</span></div>
             </div>
-            <div class="card-price">${price:,.2f} <span>/{escape(str(row['unit_of_measure']))}</span></div>
             """,
             unsafe_allow_html=True,
         )
@@ -308,11 +266,11 @@ def _detail_row(products, product_id):
     return row.iloc[0]
 
 
-def render_product_detail_content(row, customer: dict, key_prefix: str = "detail") -> None:
+def render_product_detail_content(row, customer: dict | None = None, key_prefix: str = "detail") -> None:
     product_id = row["product_id"]
     in_stock = int(row["quantity_in_stock"]) > 0
     badge_text, badge_class = stock_badge(row)
-    icc_tag = '<span class="badge badge-icc">ICC recommended</span>' if bool(row["is_icc_supply"]) else ""
+    featured_tag = '<span class="badge badge-featured">Featured</span>' if bool(row["is_icc_supply"]) else ""
     stock_qty = int(row["quantity_in_stock"])
     cols = st.columns([1, 1.2])
     with cols[0]:
@@ -321,11 +279,10 @@ def render_product_detail_content(row, customer: dict, key_prefix: str = "detail
         st.markdown(
             f"""
             <div class="detail-shell">
-                <div class="product-badges"><span class="{badge_class}">{escape(badge_text)}</span>{icc_tag}</div>
+                <div class="product-badges"><span class="{badge_class}">{escape(badge_text)}</span>{featured_tag}</div>
                 <div class="detail-title">{escape(str(row['product_name']))}</div>
                 <div class="detail-subtitle">{escape(str(row['manufacturer']))} | SKU {escape(str(row['sku']))} | MPN {escape(str(row['manufacturer_part_number']))}</div>
                 <div class="detail-description">{escape(str(row['description']))}</div>
-                <div class="detail-price">${effective_price(row, customer):,.2f} <span>/{escape(str(row['unit_of_measure']))}</span></div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -359,7 +316,7 @@ def render_product_detail_content(row, customer: dict, key_prefix: str = "detail
         """,
         unsafe_allow_html=True,
     )
-def render_product_detail_modal(products, customer: dict) -> None:
+def render_product_detail_modal(products, customer: dict | None = None) -> None:
     product_id = st.session_state.get(DETAIL_MODAL_KEY)
     if not product_id:
         return
@@ -373,7 +330,7 @@ def render_product_detail_modal(products, customer: dict) -> None:
 
         @st.dialog("Product details")
         def detail_dialog() -> None:
-            render_product_detail_content(row, customer, key_prefix="modal_detail")
+            render_product_detail_content(row, key_prefix="modal_detail")
             if st.button("Close", key=f"modal_close_{row['product_id']}"):
                 st.session_state.pop(DETAIL_MODAL_KEY, None)
                 st.rerun()
@@ -382,15 +339,15 @@ def render_product_detail_modal(products, customer: dict) -> None:
         return
 
     with st.expander("Product details", expanded=True):
-        render_product_detail_content(row, customer, key_prefix="modal_detail")
+        render_product_detail_content(row, key_prefix="modal_detail")
         if st.button("Close details", key=f"modal_close_{row['product_id']}"):
             st.session_state.pop(DETAIL_MODAL_KEY, None)
             st.rerun()
 
 
-def render_product_detail_page(products, customer: dict) -> None:
+def render_product_detail_page(products, customer: dict | None = None) -> None:
     apply_catalog_styles()
-    products = prepare_catalog_products(products, customer)
+    products = prepare_catalog_products(products)
     product_id = st.session_state.get("selected_product_id")
     if not product_id:
         product_id = products.iloc[0]["product_id"]
@@ -400,6 +357,6 @@ def render_product_detail_page(products, customer: dict) -> None:
         return
 
     st.markdown('<div class="page-kicker">Product Detail</div>', unsafe_allow_html=True)
-    render_product_detail_content(row, customer, key_prefix="detail_page")
+    render_product_detail_content(row, key_prefix="detail_page")
 
 

@@ -1,16 +1,39 @@
-# Pioneer Industrial Sales Streamlit Demo
+# Pioneer Industrial Sales Public Catalog
 
-This repository contains a Streamlit demo app for presenting the Pioneer Industrial Sales customer experience with lightweight, demo-ready data. It is intended for quick local review, GitHub sharing, and deployment to Streamlit Community Cloud.
+This repository contains the Pioneer Industrial Sales Streamlit catalog. Phase 1 is scoped as a public-facing product catalog that helps visitors browse industrial supply categories, inspect product details, and start a quote request with lightweight, approved demo product data.
+
+The public site should not expose customer-specific accounts, pricing, order history, or demo customer workflows. Demo customers are reserved for the Stage 2 tablet-mode vision, where sales reps can use account-aware views during guided customer conversations.
 
 ## Repository Files
 
 - `requirements.txt`: Python packages needed by the Streamlit app.
 - `.streamlit/config.toml`: Pioneer-aligned Streamlit UI theme defaults.
 - `.gitignore`: Local Python, Streamlit secret, editor, and build artifacts to keep out of Git.
-- `README.md`: Setup, run, upload, deployment, demo, and QC notes.
+- `README.md`: Setup, run, deployment, product vision, and QC notes.
 - `assets/`: Logo and demo product imagery.
-- `data/`: Approved sample customer and product data.
+- `data/`: Approved sample product data, plus Stage 2-only demo customer data when needed for tablet-mode work.
 - `modules/`: Streamlit page, catalog, cart, data loading, and styling modules.
+
+## Product Direction
+
+### Phase 1: Public Catalog
+
+Phase 1 is the public Pioneer Industrial Sales catalog experience:
+
+- Open catalog browsing without authentication.
+- Product search, category filtering, stock/lead-time context, product details, and quote-cart flow.
+- Public brand presentation for Pioneer services and industrial supply categories.
+- Sample or approved product data only.
+- No public customer selector, customer-specific pricing, contract terms, account notes, quote history, or private customer records.
+
+### Stage 2+: Rep Tablet Mode
+
+Stage 2 and later can add a tablet-friendly sales-rep workflow for in-person walkthroughs:
+
+- Demo customer selector for guided selling and training.
+- Account-aware recommendations, preferred categories, quote history placeholders, and negotiated-pricing examples.
+- Customer-context views optimized for tablet use during field visits, counter conversations, or trade-show demos.
+- Clear separation from the public catalog so customer-style demo data does not appear on the public site.
 
 ## Local Setup
 
@@ -67,20 +90,20 @@ git push -u origin main
 
 If the app needs private keys or credentials later, add them in Streamlit Cloud under **App settings > Secrets**. Do not commit `.streamlit/secrets.toml`.
 
-## Demo Customer Instructions
+## Public Demo Instructions
 
-Use the deployed Streamlit URL during customer walkthroughs.
+Use the deployed Streamlit URL to review the Phase 1 public catalog experience.
 
-Recommended demo flow:
+Recommended Phase 1 review flow:
 
 1. Open the app in a fresh browser window.
 2. Confirm the page loads without install prompts or errors.
-3. Walk through the primary scenario from top to bottom.
-4. Use any filters, controls, or tabs in a realistic order.
+3. Browse the public catalog from top to bottom.
+4. Use search, filters, product detail views, and quote-cart controls in a realistic order.
 5. Call out that the data is sample data for demonstration only.
-6. End by showing the expected customer outcome or decision point.
+6. End by showing the quote-request path or expected buyer decision point.
 
-Before sharing externally, confirm the URL, demo script, and any customer-specific talking points with the project owner.
+Before sharing externally, confirm the URL, product data, brand copy, and public-facing demo script with the project owner. Do not present demo customer accounts on the public site; those belong to the Stage 2 tablet-mode workflow.
 
 ## Brand and Theme Notes
 
@@ -96,7 +119,9 @@ Keep `.streamlit/config.toml` aligned with the app-level CSS in `modules/styling
 
 ## Demo Data Note
 
-This demo should use synthetic, anonymized, or approved sample data only. Do not upload real customer data, private credentials, internal exports, or personally identifiable information unless the project owner has explicitly approved that data for the demo environment.
+This catalog should use synthetic, anonymized, or approved sample data only. Do not upload real customer data, private credentials, internal exports, or personally identifiable information unless the project owner has explicitly approved that data for the intended environment.
+
+For Phase 1 public catalog releases, keep customer-specific demo data out of the public experience. Demo customer profiles, negotiated-pricing examples, quote-history placeholders, and account-aware recommendations are reserved for Stage 2+ tablet mode.
 
 ## QC Checks Before Final
 
@@ -109,6 +134,8 @@ Run these checks before handing off the repository or deployment:
 - The Pioneer logo loads from `assets/pioneer_logo.png`.
 - Streamlit theme colors match the Pioneer brand notes above.
 - All visible controls, filters, links, and charts work with demo data.
+- Phase 1 public navigation does not expose demo customer accounts, customer-specific pricing, private account notes, or quote history.
+- Any demo customer selector or account-aware workflow is clearly treated as Stage 2+ tablet-mode work, not the public catalog.
 - The deployed Streamlit Cloud app builds successfully from GitHub.
 - The deployed app opens in an incognito/private browser window.
 - No secrets, tokens, local paths, customer data, or private files are committed.

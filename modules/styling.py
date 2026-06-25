@@ -1,4 +1,4 @@
-﻿import streamlit as st
+import streamlit as st
 
 
 PIONEER_GREEN = "#4c6444"
@@ -127,29 +127,30 @@ def apply_global_styles() -> None:
     )
 
 
-def render_home_page(products, customer: dict) -> None:
-    icc_count = int(products["is_icc_supply"].sum())
+def render_home_page(products, customer: dict | None = None) -> None:
+    category_count = int(products["category"].nunique())
+    in_stock_count = int((products["quantity_in_stock"] > 0).sum())
     st.markdown(
         f"""
         <div class="hero">
             <div class="page-kicker">Pioneer Industrial Sales</div>
             <h1>Everything you need, delivered.</h1>
-            <p>Browse a working digital catalog built for industrial buyers who need stock visibility,
-            account-aware pricing, fast quote requests, and a service team that knows the plant floor.</p>
+            <p>Browse Pioneer Industrial Sales products, service capabilities, and quote support for
+            maintenance, operations, fabrication, electrical, safety, packaging, and MRO teams.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Demo SKUs", f"{len(products):,}")
-    c2.metric("ICC Supplies", icc_count)
-    c3.metric("Selected Customer", customer.get("customer_name", "Demo customer"))
-    c4.metric("Sales Rep", customer.get("assigned_sales_rep", "Taylor"))
+    c1.metric("Catalog SKUs", f"{len(products):,}")
+    c2.metric("Product Categories", category_count)
+    c3.metric("In-Stock Items", f"{in_stock_count:,}")
+    c4.metric("Quote Support", "Pioneer Team")
 
     st.markdown("### We Sell Service.")
     tiles = st.columns(4)
     services = [
-        ("Inventory Management", "Stock planning, reorder visibility, and account-specific supply programs."),
+        ("Inventory Management", "Stock planning, reorder visibility, and future authenticated supply programs."),
         ("24/7 Delivery Service", "Urgent delivery options for line-down and maintenance-critical needs."),
         ("Kitting & Fabrication Services", "Bundled job kits and fabrication support for repeat production work."),
         ("Comprehensive Line of Products", "Packaging, MRO, electrical, safety, abrasives, fasteners, and more."),
@@ -157,8 +158,10 @@ def render_home_page(products, customer: dict) -> None:
     for tile, (title, body) in zip(tiles, services):
         tile.markdown(f'<div class="service-tile"><h4>{title}</h4><p>{body}</p></div>', unsafe_allow_html=True)
 
-    if customer.get("customer_name") == "ICC International":
-        st.markdown('<div class="recommendation-strip">ICC International profile active: catalog highlights mica, banding tape, safety, abrasives, bearings, hydraulic, and electrical supplies.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="recommendation-strip">Stage 2 will add authenticated customer workflows such as saved lists, customer pricing requests, and reorder history.</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_about_page() -> None:
@@ -166,7 +169,7 @@ def render_about_page() -> None:
     st.title("Industrial supply backed by service")
     st.write(
         "Pioneer Industrial Sales supports manufacturers, maintenance teams, electrical contractors, "
-        "fabricators, and operations leaders with a comprehensive line of products and responsive account service."
+        "fabricators, and operations leaders with a comprehensive line of products and responsive service."
     )
     cols = st.columns(3)
     cols[0].markdown("### Inventory Management\nKeep recurring supplies visible, quoted, and ready for reorder.")
