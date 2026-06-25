@@ -1,9 +1,11 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import streamlit as st
 
 
 FINAL_PRICING_NOTE = "Final pricing confirmed by Pioneer sales representative."
+PIONEER_CONTACT_TEXT = "Questions or rush needs? Contact your Pioneer sales representative or Pioneer Industrial Sales for help."
+PAYMENT_TEXT = "Payment is completed after Pioneer confirms pricing, availability, freight, and delivery details."
 CONFIRMATION_TEXT = (
     "Your quote request has been sent to Pioneer Industrial Sales. A customer service representative "
     "will contact you with confirmed pricing, delivery options, and payment instructions."
@@ -60,12 +62,24 @@ def render_quote_sidebar(products, customer: dict) -> None:
     st.markdown("### Quote Cart")
     st.caption(customer.get("customer_name", "Selected customer"))
     if not lines:
-        st.caption("No products selected yet.")
+        st.caption("No products selected yet. Add catalog items to build a Pioneer quote request.")
+        st.info(PIONEER_CONTACT_TEXT)
         return
 
-    st.metric("Items", sum(line["quantity"] for line in lines))
-    st.metric("Estimated subtotal", f"${cart_subtotal(products, customer):,.2f}")
+    total_items = sum(line["quantity"] for line in lines)
+    subtotal = cart_subtotal(products, customer)
+    st.metric("Items in quote cart", total_items)
+    st.metric("Estimated subtotal", f"${subtotal:,.2f}")
+    with st.expander("Cart preview", expanded=True):
+        for line in lines[:4]:
+            st.markdown(
+                f"**{line['quantity']} x {line['name']}**  \n"
+                f"`{line['sku']}` | ${line['line_total']:,.2f}"
+            )
+        if len(lines) > 4:
+            st.caption(f"+ {len(lines) - 4} more line item(s)")
     st.caption(FINAL_PRICING_NOTE)
+    st.caption(PAYMENT_TEXT)
     if st.button("Submit Quote Request", use_container_width=True, key="sidebar_submit"):
         submit_quote(products, customer)
         st.rerun()
@@ -78,9 +92,11 @@ def render_quote_cart_page(products, customer: dict) -> None:
 
     lines = cart_lines(products, customer)
     if not lines:
-        st.info("Your quote cart is empty. Add products from the catalog to start a request.")
+        st.info("Your quote cart is empty. Add products from the catalog to start a Pioneer quote request.")
+        st.caption(PIONEER_CONTACT_TEXT)
         return
 
+    st.caption("Adjust quantities before submitting. Pioneer will confirm price, delivery, and payment details.")
     for line in lines:
         with st.container(border=True):
             cols = st.columns([4, 1.2, 1.2, 1])
@@ -93,18 +109,20 @@ def render_quote_cart_page(products, customer: dict) -> None:
                 key=f"cart_qty_{line['product_id']}",
             )
             st.session_state["cart"][line["product_id"]] = int(new_qty)
-            cols[2].markdown(f"**${line['unit_price']:,.2f}**  \n${line['line_total']:,.2f}")
+            updated_line_total = round(line["unit_price"] * int(new_qty), 2)
+            cols[2].markdown(f"**${line['unit_price']:,.2f} ea.**  \n${updated_line_total:,.2f}")
             if cols[3].button("Remove", key=f"remove_{line['product_id']}"):
                 st.session_state["cart"].pop(line["product_id"], None)
                 st.rerun()
 
     st.markdown(f"## Estimated subtotal: ${cart_subtotal(products, customer):,.2f}")
     st.caption(FINAL_PRICING_NOTE)
+    st.caption(PAYMENT_TEXT)
     cols = st.columns(2)
     if cols[0].button("Submit Quote Request", type="primary", use_container_width=True, key="cart_submit"):
         submit_quote(products, customer)
         st.rerun()
-    cols[1].info("Call Pioneer to complete payment after confirmed pricing.")
+    cols[1].info("Pioneer will follow up with confirmed pricing, payment instructions, and delivery options.")
 
 
 def submit_quote(products, customer: dict) -> str:
@@ -132,6 +150,7 @@ def render_request_quote_page(products, customer: dict) -> None:
     if st.session_state.get("last_quote_number"):
         st.success(CONFIRMATION_TEXT)
         st.markdown(f"### Quote request number: `{st.session_state['last_quote_number']}`")
+        st.caption(PIONEER_CONTACT_TEXT)
     else:
         st.info("Review your cart and submit when ready.")
 

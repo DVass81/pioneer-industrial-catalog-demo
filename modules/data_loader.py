@@ -8,6 +8,43 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
 
 
+CATEGORY_IMAGE_MAP = {
+    "Packaging": "assets/product_placeholders/packaging.svg",
+    "Power Transmission": "assets/product_placeholders/power_transmission.svg",
+    "MRO Facilities & Maintenance": "assets/product_placeholders/mro_facilities_and_maintenance.svg",
+    "Electrical": "assets/product_placeholders/electrical.svg",
+    "Hoses, Tubes & Pipes": "assets/product_placeholders/hoses_tubes_and_pipes.svg",
+    "Janitorial & Safety": "assets/product_placeholders/janitorial_and_safety.svg",
+    "Adhesives, Sealants & Tapes": "assets/product_placeholders/adhesives_sealants_and_tapes.svg",
+    "Fasteners & Hardware": "assets/product_placeholders/fasteners_and_hardware.svg",
+    "Material Handling": "assets/product_placeholders/material_handling.svg",
+    "Office Supplies": "assets/product_placeholders/office_supplies.svg",
+    "Pneumatics & Hydraulics": "assets/product_placeholders/pneumatics_and_hydraulics.svg",
+    "Paints & Painting Supplies": "assets/product_placeholders/paints_and_painting_supplies.svg",
+    "Welding & Fabrication": "assets/product_placeholders/welding_and_fabrication.svg",
+    "Abrasives & Cutting": "assets/product_placeholders/abrasives_and_cutting.svg",
+    "Bearings & Motion Control": "assets/product_placeholders/bearings_and_motion_control.svg",
+    "Abrasives & Grinding": "assets/product_placeholders/abrasives_and_cutting.svg",
+    "Cutting Tools": "assets/product_placeholders/abrasives_and_cutting.svg",
+    "Electrical & Wire Management": "assets/product_placeholders/electrical.svg",
+    "Fasteners & Anchors": "assets/product_placeholders/fasteners_and_hardware.svg",
+    "Hydraulics & Pneumatics": "assets/product_placeholders/pneumatics_and_hydraulics.svg",
+    "Industrial Hardware": "assets/product_placeholders/fasteners_and_hardware.svg",
+    "MRO Chemicals & Lubricants": "assets/product_placeholders/mro_facilities_and_maintenance.svg",
+    "Measuring & Layout": "assets/product_placeholders/material_handling.svg",
+    "PPE & Safety": "assets/product_placeholders/janitorial_and_safety.svg",
+    "Packaging & Shipping": "assets/product_placeholders/packaging.svg",
+    "Pipe, Valves & Fittings": "assets/product_placeholders/hoses_tubes_and_pipes.svg",
+    "Power Tool Accessories": "assets/product_placeholders/power_transmission.svg",
+    "Shop Supplies & Janitorial": "assets/product_placeholders/janitorial_and_safety.svg",
+    "Welding & Gas Supplies": "assets/product_placeholders/welding_and_fabrication.svg",
+}
+
+
+def _category_image(category: str) -> str:
+    return CATEGORY_IMAGE_MAP.get(str(category), "assets/product_placeholders/industrial-product.svg")
+
+
 @st.cache_data(show_spinner=False)
 def load_products() -> pd.DataFrame:
     products = pd.read_csv(DATA_DIR / "demo_products.csv")
@@ -16,8 +53,10 @@ def load_products() -> pd.DataFrame:
     if "image_url" not in products.columns and "image_ref" in products.columns:
         products["image_url"] = products["image_ref"]
     if "image_url" not in products.columns:
-        products["image_url"] = "assets/product_placeholders/industrial-product.svg"
-    products["is_icc_supply"] = products["is_icc_supply"].astype(bool)
+        products["image_url"] = products["category"].map(_category_image)
+    generic_image = "assets/product_placeholders/industrial-product.svg"
+    products.loc[products["image_url"].astype(str).str.endswith("industrial-product.svg"), "image_url"] = products["category"].map(_category_image)
+    products["is_icc_supply"] = products["is_icc_supply"].astype(str).str.strip().str.lower().isin(["true", "1", "yes", "y"])
     products["price"] = products["price"].astype(float)
     if "customer_specific_price" not in products.columns:
         products["customer_specific_price"] = products["price"]

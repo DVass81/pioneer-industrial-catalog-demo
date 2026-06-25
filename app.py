@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 
 from modules.cart import render_quote_cart_page, render_quote_sidebar, render_request_quote_page
 from modules.catalog import render_catalog_page, render_product_detail_page
@@ -35,7 +35,8 @@ products = load_products()
 customers = load_customers()
 
 with st.sidebar:
-    st.markdown('<div class="sidebar-brand">Pioneer Industrial Sales</div>', unsafe_allow_html=True)
+    st.image("assets/pioneer_logo.png", use_container_width=True)
+    st.markdown('<div class="sidebar-brand">Customer Supply Portal</div>', unsafe_allow_html=True)
     selected_customer = render_customer_selector(customers)
     st.divider()
     page = st.radio(

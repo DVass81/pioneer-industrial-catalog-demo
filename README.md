@@ -1,13 +1,16 @@
-# Pioneet Streamlit Demo
+# Pioneer Industrial Sales Streamlit Demo
 
-This repository contains a Streamlit demo app for presenting the Pioneet customer experience with lightweight, demo-ready data. It is intended for quick local review, GitHub sharing, and deployment to Streamlit Community Cloud.
+This repository contains a Streamlit demo app for presenting the Pioneer Industrial Sales customer experience with lightweight, demo-ready data. It is intended for quick local review, GitHub sharing, and deployment to Streamlit Community Cloud.
 
 ## Repository Files
 
 - `requirements.txt`: Python packages needed by the Streamlit app.
-- `.streamlit/config.toml`: Streamlit UI theme and server defaults.
+- `.streamlit/config.toml`: Pioneer-aligned Streamlit UI theme defaults.
 - `.gitignore`: Local Python, Streamlit secret, editor, and build artifacts to keep out of Git.
 - `README.md`: Setup, run, upload, deployment, demo, and QC notes.
+- `assets/`: Logo and demo product imagery.
+- `data/`: Approved sample customer and product data.
+- `modules/`: Streamlit page, catalog, cart, data loading, and styling modules.
 
 ## Local Setup
 
@@ -79,6 +82,18 @@ Recommended demo flow:
 
 Before sharing externally, confirm the URL, demo script, and any customer-specific talking points with the project owner.
 
+## Brand and Theme Notes
+
+The rebuilt Pioneer demo uses a light Streamlit shell with olive green, charcoal, black-green ink, and warm neutral accents:
+
+- Primary action/accent: `#4C6444`
+- Sidebar and hero dark green: `#344530`
+- Main text: `#171914`
+- Secondary background: `#F4F2EC`
+- App logo asset: `assets/pioneer_logo.png`
+
+Keep `.streamlit/config.toml` aligned with the app-level CSS in `modules/styling.py` so Streamlit widgets, buttons, sidebar behavior, and the custom page styling feel like one brand system.
+
 ## Demo Data Note
 
 This demo should use synthetic, anonymized, or approved sample data only. Do not upload real customer data, private credentials, internal exports, or personally identifiable information unless the project owner has explicitly approved that data for the demo environment.
@@ -91,6 +106,8 @@ Run these checks before handing off the repository or deployment:
 - `pip install -r requirements.txt` completes in a clean virtual environment.
 - `streamlit run app.py` starts successfully from the repository root.
 - The app loads locally without uncaught Streamlit errors.
+- The Pioneer logo loads from `assets/pioneer_logo.png`.
+- Streamlit theme colors match the Pioneer brand notes above.
 - All visible controls, filters, links, and charts work with demo data.
 - The deployed Streamlit Cloud app builds successfully from GitHub.
 - The deployed app opens in an incognito/private browser window.

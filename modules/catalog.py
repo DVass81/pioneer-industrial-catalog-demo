@@ -29,6 +29,47 @@ SEARCH_FIELDS = [
     "tags",
 ]
 
+def apply_catalog_styles() -> None:
+    st.markdown(
+        """
+        <style>
+        .catalog-summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: .85rem 0 .65rem; padding: .65rem .8rem; border: 1px solid #E2E5EA; border-radius: 8px; background: #F8FAFC; }
+        .catalog-summary strong { color: #101722; font-size: 1rem; }
+        .catalog-summary span { color: #56616F; font-size: .82rem; font-weight: 700; text-transform: uppercase; }
+        .catalog-filter-note { color: #56616F; font-size: .83rem; margin-top: -.3rem; }
+        .product-card { position: relative; min-height: 570px; padding: .8rem; border-color: #D8DDE5; box-shadow: 0 8px 18px rgba(16,23,34,.07); }
+        .product-card img { border: 1px solid #ECEFF3; border-radius: 6px; background: #F6F8FA; }
+        .product-card h3 { margin: .25rem 0 .3rem; min-height: 2.45rem; font-size: 1rem; }
+        .product-card p { margin: .45rem 0 .55rem; min-height: 3.55rem; font-size: .84rem; line-height: 1.35; }
+        .product-meta { display: flex; align-items: center; justify-content: space-between; gap: .45rem; margin-top: .65rem; color: #56616F; font-size: .72rem; }
+        .product-meta span { overflow-wrap: anywhere; }
+        .product-badges { margin: .35rem 0 .3rem; min-height: 1.55rem; }
+        .product-spec-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem; margin: .55rem 0; }
+        .product-spec { border: 1px solid #E7EAF0; border-radius: 6px; padding: .42rem .5rem; background: #FBFCFE; }
+        .product-spec label { display: block; margin-bottom: .1rem; color: #687386; font-size: .66rem; font-weight: 800; text-transform: uppercase; }
+        .product-spec span { color: #101722; font-size: .78rem; font-weight: 800; overflow-wrap: anywhere; }
+        .card-price { display: flex; align-items: baseline; gap: .25rem; margin: .55rem 0 .45rem; font-size: 1.28rem; }
+        .badge { border: 1px solid transparent; letter-spacing: .01rem; }
+        .badge-stock { border-color: #BFEAD0; }
+        .badge-low { border-color: #FFD6A8; }
+        .badge-special { border-color: #D9DEE7; }
+        .badge-reorder { border-color: #F2E49A; }
+        .badge-icc { box-shadow: inset 0 -1px 0 rgba(0,0,0,.18); }
+        .detail-shell { border: 1px solid #E0E3E8; border-radius: 8px; padding: 1rem; background: #FFFFFF; box-shadow: 0 8px 20px rgba(16,23,34,.06); }
+        .detail-title { margin: .35rem 0 .25rem; font-size: 1.55rem; line-height: 1.1; font-weight: 900; color: #101722; }
+        .detail-subtitle { color: #56616F; font-size: .85rem; font-weight: 700; }
+        .detail-description { color: #2E3744; margin: .8rem 0; line-height: 1.45; }
+        .detail-price { margin: .75rem 0 .25rem; font-size: 1.65rem; font-weight: 900; color: #101722; }
+        .detail-price span { color: #56616F; font-size: .9rem; font-weight: 700; }
+        .detail-spec-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin-top: .9rem; }
+        .detail-spec { border: 1px solid #E7EAF0; border-radius: 6px; padding: .65rem; background: #FBFCFE; }
+        .detail-spec label { display: block; color: #687386; font-size: .7rem; font-weight: 900; text-transform: uppercase; margin-bottom: .15rem; }
+        .detail-spec span { color: #101722; font-weight: 800; overflow-wrap: anywhere; }
+        @media (max-width: 900px) { .catalog-summary { align-items: flex-start; flex-direction: column; } .product-card { min-height: auto; } .detail-spec-grid { grid-template-columns: 1fr; } }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def _customer_price(value, customer: dict) -> float | None:
     if value is None:
@@ -159,28 +200,41 @@ def sort_products(products, sort_by):
 
 
 def render_catalog_page(products, customer: dict) -> None:
+    apply_catalog_styles()
     products = prepare_catalog_products(products, customer)
     st.markdown('<div class="page-kicker">Industrial Catalog</div>', unsafe_allow_html=True)
     st.title("Find the supplies that keep the line moving")
 
     with st.container(border=True):
-        top = st.columns([3, 1.4, 1.4, 1.2])
-        search = top[0].text_input("Search products, SKU, manufacturer part, category, tags")
+        top = st.columns([2.6, 1.35, 1.35, 1.1])
+        search = top[0].text_input("Search catalog", placeholder="Product, SKU, MPN, category, tag")
         category_options = ["All"] + sorted(products["category"].unique().tolist())
         category = top[1].selectbox("Category", category_options)
         sub_source = products if category == "All" else products.loc[products["category"] == category]
         subcategory = top[2].selectbox("Subcategory", ["All"] + sorted(sub_source["subcategory"].unique().tolist()))
         sort_by = top[3].selectbox("Sort by", ["Relevance", "Stock", "Price", "Category"])
-        toggles = st.columns([1, 1, 4])
+        toggles = st.columns([1.1, 1.1, 3.8])
         in_stock_only = toggles[0].toggle("In-stock only")
         icc_only = toggles[1].toggle("ICC supplies")
+        toggles[2].markdown(
+            '<div class="catalog-filter-note">Use filters together for fast reorder, sourcing, and quote-building workflows.</div>',
+            unsafe_allow_html=True,
+        )
 
     filtered = sort_products(filter_products(products, search, category, subcategory, in_stock_only, icc_only), sort_by)
 
     if customer["customer_name"] == "ICC International" and not icc_only:
         st.markdown('<div class="recommendation-strip">ICC International recommended supplies are highlighted with red tags.</div>', unsafe_allow_html=True)
 
-    st.caption(f"{len(filtered)} products found")
+    st.markdown(
+        f"""
+        <div class="catalog-summary">
+            <strong>{len(filtered):,} products found</strong>
+            <span>{escape(category)} / {escape(subcategory)} / Sorted by {escape(sort_by)}</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
     render_product_grid(filtered, customer)
     render_product_detail_modal(products, customer)
 
@@ -201,21 +255,34 @@ def render_product_card(col, row, customer: dict) -> None:
     price = effective_price(row, customer)
     product_id = row["product_id"]
     in_stock = int(row["quantity_in_stock"]) > 0
+    stock_qty = int(row["quantity_in_stock"])
+    reorder_point = int(row["reorder_point"])
+    lead_time = escape(str(row["lead_time"]))
+    warehouse = escape(str(row["warehouse_location"]))
     with col:
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
         st.image(row["image_url"], use_container_width=True)
         icc_tag = '<span class="badge badge-icc">ICC</span>' if bool(row["is_icc_supply"]) else ""
         st.markdown(
             f"""
-            <div class="product-meta">{escape(str(row['manufacturer']))} | {escape(str(row['sku']))}</div>
+            <div class="product-meta">
+                <span>{escape(str(row['manufacturer']))}</span>
+                <span>SKU {escape(str(row['sku']))}</span>
+            </div>
             <h3>{escape(str(row['product_name']))}</h3>
-            <div><span class="{badge_class}">{escape(badge_text)}</span>{icc_tag}</div>
+            <div class="product-badges"><span class="{badge_class}">{escape(badge_text)}</span>{icc_tag}</div>
             <p>{escape(str(row['description']))}</p>
+            <div class="product-spec-strip">
+                <div class="product-spec"><label>MPN</label><span>{escape(str(row['manufacturer_part_number']))}</span></div>
+                <div class="product-spec"><label>Stock</label><span>{stock_qty:,} on hand</span></div>
+                <div class="product-spec"><label>Lead</label><span>{lead_time}</span></div>
+                <div class="product-spec"><label>Bin</label><span>{warehouse}</span></div>
+            </div>
             <div class="card-price">${price:,.2f} <span>/{escape(str(row['unit_of_measure']))}</span></div>
             """,
             unsafe_allow_html=True,
         )
-        max_qty = max(1, int(row["quantity_in_stock"]))
+        max_qty = max(1, stock_qty)
         qty = st.number_input(
             "Qty",
             min_value=1,
@@ -224,6 +291,7 @@ def render_product_card(col, row, customer: dict) -> None:
             step=1,
             key=f"qty_{product_id}",
             disabled=not in_stock,
+            help=f"Reorder point: {reorder_point:,}",
         )
         bcols = st.columns(2)
         if bcols[0].button("Add", key=f"add_{product_id}", use_container_width=True, disabled=not in_stock):
@@ -233,8 +301,6 @@ def render_product_card(col, row, customer: dict) -> None:
             st.session_state[DETAIL_MODAL_KEY] = product_id
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
-
-
 def _detail_row(products, product_id):
     row = products.loc[products["product_id"] == product_id]
     if row.empty:
@@ -245,20 +311,29 @@ def _detail_row(products, product_id):
 def render_product_detail_content(row, customer: dict, key_prefix: str = "detail") -> None:
     product_id = row["product_id"]
     in_stock = int(row["quantity_in_stock"]) > 0
+    badge_text, badge_class = stock_badge(row)
+    icc_tag = '<span class="badge badge-icc">ICC recommended</span>' if bool(row["is_icc_supply"]) else ""
+    stock_qty = int(row["quantity_in_stock"])
     cols = st.columns([1, 1.2])
     with cols[0]:
         st.image(row["image_url"], use_container_width=True)
     with cols[1]:
-        badge_text, badge_class = stock_badge(row)
-        st.markdown(f'<span class="{badge_class}">{escape(badge_text)}</span>', unsafe_allow_html=True)
-        st.title(row["product_name"])
-        st.caption(f"{row['manufacturer']} | SKU {row['sku']} | MPN {row['manufacturer_part_number']}")
-        st.write(row["description"])
-        st.markdown(f"### ${effective_price(row, customer):,.2f} / {row['unit_of_measure']}")
+        st.markdown(
+            f"""
+            <div class="detail-shell">
+                <div class="product-badges"><span class="{badge_class}">{escape(badge_text)}</span>{icc_tag}</div>
+                <div class="detail-title">{escape(str(row['product_name']))}</div>
+                <div class="detail-subtitle">{escape(str(row['manufacturer']))} | SKU {escape(str(row['sku']))} | MPN {escape(str(row['manufacturer_part_number']))}</div>
+                <div class="detail-description">{escape(str(row['description']))}</div>
+                <div class="detail-price">${effective_price(row, customer):,.2f} <span>/{escape(str(row['unit_of_measure']))}</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
         qty = st.number_input(
             "Quantity",
             min_value=1,
-            max_value=max(1, int(row["quantity_in_stock"])),
+            max_value=max(1, stock_qty),
             value=1,
             step=1,
             key=f"{key_prefix}_qty_{product_id}",
@@ -271,13 +346,19 @@ def render_product_detail_content(row, customer: dict, key_prefix: str = "detail
             disabled=not in_stock,
         ):
             add_to_cart(product_id, qty)
-        st.divider()
-        st.write("Specs:", row["specs"])
-        st.write("Lead time:", row["lead_time"])
-        st.write("Warehouse:", row["warehouse_location"])
-        st.write("Stock:", int(row["quantity_in_stock"]))
-
-
+    st.markdown(
+        f"""
+        <div class="detail-spec-grid">
+            <div class="detail-spec"><label>Specs</label><span>{escape(str(row['specs']))}</span></div>
+            <div class="detail-spec"><label>Lead time</label><span>{escape(str(row['lead_time']))}</span></div>
+            <div class="detail-spec"><label>Warehouse</label><span>{escape(str(row['warehouse_location']))}</span></div>
+            <div class="detail-spec"><label>Available stock</label><span>{stock_qty:,}</span></div>
+            <div class="detail-spec"><label>Reorder point</label><span>{int(row['reorder_point']):,}</span></div>
+            <div class="detail-spec"><label>Category</label><span>{escape(str(row['category']))} / {escape(str(row['subcategory']))}</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 def render_product_detail_modal(products, customer: dict) -> None:
     product_id = st.session_state.get(DETAIL_MODAL_KEY)
     if not product_id:
@@ -308,6 +389,7 @@ def render_product_detail_modal(products, customer: dict) -> None:
 
 
 def render_product_detail_page(products, customer: dict) -> None:
+    apply_catalog_styles()
     products = prepare_catalog_products(products, customer)
     product_id = st.session_state.get("selected_product_id")
     if not product_id:
@@ -319,3 +401,5 @@ def render_product_detail_page(products, customer: dict) -> None:
 
     st.markdown('<div class="page-kicker">Product Detail</div>', unsafe_allow_html=True)
     render_product_detail_content(row, customer, key_prefix="detail_page")
+
+
