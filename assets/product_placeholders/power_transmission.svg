@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="420" viewBox="0 0 640 420">
+  <rect width="640" height="420" fill="#F5F5F5"/>
+  <rect width="640" height="86" fill="#101722"/>
+  <rect y="86" width="640" height="12" fill="#101722"/>
+  <rect x="52" y="138" width="536" height="218" rx="8" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="3"/>
+  <rect x="90" y="178" width="460" height="138" rx="6" fill="#FFFFFF" stroke="#B6BEC8" stroke-width="2"/>
+  <text x="52" y="52" fill="#FFFFFF" font-size="18" font-family="Arial, sans-serif" font-weight="700">PIONEER INDUSTRIAL SALES</text>
+  <text x="120" y="238" fill="#101722" font-size="30" font-family="Arial, sans-serif" font-weight="800">POWER TRANSMISSION</text>
+  <text x="120" y="278" fill="#56616F" font-size="17" font-family="Arial, sans-serif">Demo product image</text>
+</svg>
