@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
@@ -32,9 +32,25 @@ def load_products() -> pd.DataFrame:
 @st.cache_data(show_spinner=False)
 def load_customers() -> pd.DataFrame:
     customers = pd.read_csv(DATA_DIR / "demo_customers.csv")
+    customers["assigned_sales_rep"] = customers.get("assigned_sales_rep", "Taylor")
+    customers["preferred_delivery_day"] = customers.get("preferred_delivery_day", "Scheduled")
+    if "frequently_ordered_categories" not in customers.columns:
+        customers["frequently_ordered_categories"] = customers.get("preferred_categories", "Demo catalog categories")
+    if "quote_history_placeholder" not in customers.columns:
+        customers["quote_history_placeholder"] = customers.get("notes", "Demo quote history placeholder")
+
     if "pricing_multiplier" not in customers.columns:
         if "custom_pricing_multiplier" in customers.columns:
             customers["pricing_multiplier"] = customers["custom_pricing_multiplier"]
+        elif "contract_discount" in customers.columns:
+            discount = (
+                customers["contract_discount"]
+                .astype(str)
+                .str.replace("%", "", regex=False)
+                .pipe(pd.to_numeric, errors="coerce")
+                .fillna(0)
+            )
+            customers["pricing_multiplier"] = 1 - (discount / 100)
         elif "discount" in customers.columns:
             discount = pd.to_numeric(customers["discount"], errors="coerce").fillna(0)
             customers["pricing_multiplier"] = 1 - (discount / 100)
