@@ -220,7 +220,7 @@ def render_product_card(col, row, customer: dict | None = None) -> None:
     warehouse = escape(str(row["warehouse_location"]))
     with col:
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
-        st.image(row["image_url"], use_container_width=True)
+        st.image(row["image_url"], width='stretch')
         featured_tag = '<span class="badge badge-featured">Featured</span>' if bool(row["is_icc_supply"]) else ""
         st.markdown(
             f"""
@@ -252,9 +252,9 @@ def render_product_card(col, row, customer: dict | None = None) -> None:
             help=f"Reorder point: {reorder_point:,}",
         )
         bcols = st.columns(2)
-        if bcols[0].button("Add", key=f"add_{product_id}", use_container_width=True, disabled=not in_stock):
+        if bcols[0].button("Add", key=f"add_{product_id}", width='stretch', disabled=not in_stock):
             add_to_cart(product_id, qty)
-        if bcols[1].button("Details", key=f"detail_{product_id}", use_container_width=True):
+        if bcols[1].button("Details", key=f"detail_{product_id}", width='stretch'):
             st.session_state["selected_product_id"] = product_id
             st.session_state[DETAIL_MODAL_KEY] = product_id
             st.rerun()
@@ -274,7 +274,7 @@ def render_product_detail_content(row, customer: dict | None = None, key_prefix:
     stock_qty = int(row["quantity_in_stock"])
     cols = st.columns([1, 1.2])
     with cols[0]:
-        st.image(row["image_url"], use_container_width=True)
+        st.image(row["image_url"], width='stretch')
     with cols[1]:
         st.markdown(
             f"""

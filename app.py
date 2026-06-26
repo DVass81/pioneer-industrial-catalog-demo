@@ -32,7 +32,7 @@ init_session_state()
 products = load_products()
 
 with st.sidebar:
-    st.image("assets/pioneer_logo.png", use_container_width=True)
+    st.image("assets/pioneer_logo.png", width='stretch')
     st.markdown('<div class="sidebar-brand">Pioneer Industrial Sales</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="quote-panel"><h4>We Sell Service.</h4><p>Browse Pioneer inventory, build a quote cart, and send a request for confirmed pricing and delivery.</p></div>',

@@ -117,7 +117,7 @@ def _contact_form() -> dict | None:
         needed_by_date = cols[0].date_input("Needed-by date", value=date.today())
         delivery_notes = st.text_area("Delivery notes", placeholder="Receiving hours, dock notes, delivery address, or rush timing.")
         quote_notes = st.text_area("Quote notes", placeholder="Anything Pioneer should know before confirming pricing and availability.")
-        submitted = st.form_submit_button("Submit Quote Request", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Submit Quote Request", type="primary", width='stretch')
     if not submitted:
         return None
     missing = [label for label, value in [("company name", company), ("contact name", contact), ("email", email), ("phone", phone)] if not str(value).strip()]

@@ -6,6 +6,7 @@ import streamlit as st
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = ROOT / "data"
+PRODUCT_IMAGE_DIR = ROOT / "assets" / "product_images" / "real"
 
 
 CATEGORY_IMAGE_MAP = {
@@ -45,6 +46,19 @@ def _category_image(category: str) -> str:
     return CATEGORY_IMAGE_MAP.get(str(category), "assets/product_placeholders/industrial-product.svg")
 
 
+def _existing_image_path(row: pd.Series) -> str:
+    image_url = str(row.get("image_url") or row.get("image_ref") or "")
+    if image_url and not image_url.startswith(("http://", "https://")) and (ROOT / image_url).exists():
+        return image_url
+
+    product_id = str(row.get("product_id", "")).lower()
+    matches = sorted(PRODUCT_IMAGE_DIR.glob(f"{product_id}*.jpg"))
+    if matches:
+        return matches[0].relative_to(ROOT).as_posix()
+
+    return _category_image(str(row.get("category", "")))
+
+
 @st.cache_data(show_spinner=False)
 def load_products() -> pd.DataFrame:
     products = pd.read_csv(DATA_DIR / "demo_products.csv")
@@ -56,6 +70,7 @@ def load_products() -> pd.DataFrame:
         products["image_url"] = products["category"].map(_category_image)
     generic_image = "assets/product_placeholders/industrial-product.svg"
     products.loc[products["image_url"].astype(str).str.endswith("industrial-product.svg"), "image_url"] = products["category"].map(_category_image)
+    products["image_url"] = products.apply(_existing_image_path, axis=1)
     products["is_icc_supply"] = products["is_icc_supply"].astype(str).str.strip().str.lower().isin(["true", "1", "yes", "y"])
     products["price"] = products["price"].astype(float)
     if "customer_specific_price" not in products.columns:
