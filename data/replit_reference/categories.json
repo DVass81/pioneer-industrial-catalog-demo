@@ -1,0 +1,98 @@
+[
+  {
+    "description": "Grinding wheels, sandpaper, and surface finishing products",
+    "iconName": "Layers",
+    "id": 3,
+    "name": "Abrasives",
+    "productCount": 3,
+    "slug": "abrasives"
+  },
+  {
+    "description": "Ball, roller, and plain bearings for industrial applications",
+    "iconName": "Circle",
+    "id": 1,
+    "name": "Bearings",
+    "productCount": 5,
+    "slug": "bearings"
+  },
+  {
+    "description": "Drill bits, end mills, taps, and precision cutting tools",
+    "iconName": "Scissors",
+    "id": 4,
+    "name": "Cutting Tools",
+    "productCount": 4,
+    "slug": "cutting-tools"
+  },
+  {
+    "description": "Switches, relays, wire management, and electrical components",
+    "iconName": "Cpu",
+    "id": 6,
+    "name": "Electrical",
+    "productCount": 3,
+    "slug": "electrical"
+  },
+  {
+    "description": "Varnishes, resins, sealants, surge ropes, and insulating films for electrical winding applications",
+    "iconName": "Zap",
+    "id": 11,
+    "name": "Electrical Insulation",
+    "productCount": 12,
+    "slug": "electrical-insulation"
+  },
+  {
+    "description": "Bolts, nuts, screws, and industrial fastening hardware",
+    "iconName": "Anchor",
+    "id": 5,
+    "name": "Fasteners",
+    "productCount": 8,
+    "slug": "fasteners"
+  },
+  {
+    "description": "Machine oils, greases, and industrial lubricants",
+    "iconName": "Droplets",
+    "id": 8,
+    "name": "Lubricants",
+    "productCount": 3,
+    "slug": "lubricants"
+  },
+  {
+    "description": "Maintenance, repair, and operations consumables",
+    "iconName": "Wrench",
+    "id": 9,
+    "name": "MRO Supplies",
+    "productCount": 3,
+    "slug": "mro-supplies"
+  },
+  {
+    "description": "Carts, conveyors, storage, and handling equipment",
+    "iconName": "Package",
+    "id": 10,
+    "name": "Material Handling",
+    "productCount": 2,
+    "slug": "material-handling"
+  },
+  {
+    "description": "Belts, pulleys, sprockets, and drive components",
+    "iconName": "Zap",
+    "id": 2,
+    "name": "Power Transmission",
+    "productCount": 5,
+    "slug": "power-transmission"
+  },
+  {
+    "description": "PPE, safety equipment, and workplace safety products",
+    "iconName": "Shield",
+    "id": 7,
+    "name": "Safety Supplies",
+    "productCount": 4,
+    "slug": "safety-supplies"
+  },
+  {
+    "description": "Polyester, Kapton, fiberglass, and specialty adhesive tapes and film rolls for industrial use",
+    "iconName": "Layers",
+    "id": 12,
+    "name": "Specialty Tapes & Films",
+    "productCount": 13,
+    "slug": "specialty-tapes-films"
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "base_url": "https://industrial-supply-hub.replit.app",
+  "category_count": 12,
+  "category_counts": {
+    "Abrasives": 3,
+    "Bearings": 5,
+    "Cutting Tools": 4,
+    "Electrical": 3,
+    "Electrical Insulation": 12,
+    "Fasteners": 8,
+    "Lubricants": 3,
+    "MRO Supplies": 3,
+    "Material Handling": 2,
+    "Power Transmission": 5,
+    "Safety Supplies": 4,
+    "Specialty Tapes & Films": 13
+  },
+  "image_domains": {
+    "arandee.co.nz": 3,
+    "cdn.create.vista.com": 1,
+    "cdn11.bigcommerce.com": 1,
+    "image.made-in-china.com": 1,
+    "images-eu.ssl-images-amazon.com": 2,
+    "images-na.ssl-images-amazon.com": 5,
+    "m.media-amazon.com": 29,
+    "s.alicdn.com": 1,
+    "www.elangmas.com": 2,
+    "www.electro-wind.com": 9,
+    "www.elektrabg.com": 2,
+    "www.ellsworth.com": 1,
+    "www.harfington.com": 6,
+    "www.metcopacific.com": 1,
+    "www.precisebits.com": 1
+  },
+  "notes": [
+    "Reference data was pulled from the public Replit app API.",
+    "Do not hotlink or blindly copy commercial image URLs into the production demo.",
+    "Use categories/product browsing patterns as a migration reference first."
+  ],
+  "product_count": 65,
+  "retrieved_date": "2026-06-28"
+}

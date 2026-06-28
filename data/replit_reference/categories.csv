@@ -1,0 +1,13 @@
+id,name,slug,description,iconName,productCount
+3,Abrasives,abrasives,"Grinding wheels, sandpaper, and surface finishing products",Layers,3
+1,Bearings,bearings,"Ball, roller, and plain bearings for industrial applications",Circle,5
+4,Cutting Tools,cutting-tools,"Drill bits, end mills, taps, and precision cutting tools",Scissors,4
+6,Electrical,electrical,"Switches, relays, wire management, and electrical components",Cpu,3
+11,Electrical Insulation,electrical-insulation,"Varnishes, resins, sealants, surge ropes, and insulating films for electrical winding applications",Zap,12
+5,Fasteners,fasteners,"Bolts, nuts, screws, and industrial fastening hardware",Anchor,8
+8,Lubricants,lubricants,"Machine oils, greases, and industrial lubricants",Droplets,3
+9,MRO Supplies,mro-supplies,"Maintenance, repair, and operations consumables",Wrench,3
+10,Material Handling,material-handling,"Carts, conveyors, storage, and handling equipment",Package,2
+2,Power Transmission,power-transmission,"Belts, pulleys, sprockets, and drive components",Zap,5
+7,Safety Supplies,safety-supplies,"PPE, safety equipment, and workplace safety products",Shield,4
+12,Specialty Tapes & Films,specialty-tapes-films,"Polyester, Kapton, fiberglass, and specialty adhesive tapes and film rolls for industrial use",Layers,13
