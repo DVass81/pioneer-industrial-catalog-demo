@@ -69,14 +69,17 @@ def build_quote_snapshot(
     contact_details: dict | None = None,
     customer: dict | None = None,
     request_type: str = "quote",
+    order_metadata: dict | None = None,
 ) -> dict:
     lines = cart_lines(products, customer)
     subtotal = round(sum(line["line_total"] for line in lines), 2)
     snapshot = {
         "request_type": request_type,
         "contact": contact_details or {},
+        "order_metadata": order_metadata or {},
         "lines": lines,
         "subtotal": subtotal,
+        "line_count": len(lines),
         "total_items": sum(line["quantity"] for line in lines),
         "final_pricing_note": FINAL_PRICING_NOTE,
     }
@@ -90,17 +93,39 @@ def build_warehouse_handoff_preview(
     quote_number: str,
     customer: dict | None = None,
     delivery_notes: str = "",
+    contact_details: dict | None = None,
+    order_metadata: dict | None = None,
 ) -> dict:
-    snapshot = build_quote_snapshot(products, customer=customer, request_type="warehouse_handoff_preview")
+    snapshot = build_quote_snapshot(
+        products,
+        contact_details=contact_details,
+        customer=customer,
+        request_type="warehouse_handoff_preview",
+        order_metadata=order_metadata,
+    )
     customer_summary = snapshot.get("customer", {})
+    contact = snapshot.get("contact", {})
+    metadata = snapshot.get("order_metadata", {})
     return {
         "quote_number": quote_number,
         "customer_name": customer_summary.get("customer_name", "Public quote request"),
         "assigned_sales_rep": customer_summary.get("assigned_sales_rep", "Taylor"),
+        "customer": customer_summary,
+        "contact": contact,
+        "order_metadata": metadata,
+        "needed_by": metadata.get("needed_by") or contact.get("needed_by_date", ""),
+        "delivery_window": metadata.get("delivery_window", ""),
         "delivery_notes": delivery_notes,
         "pull_ticket_status": "Preview only - Stage 3 WMS will create the pull ticket.",
+        "warehouse_notes": [
+            "Confirm stock before pick release.",
+            "Validate freight, tax, and delivery route before customer payment.",
+        ],
         "lines": snapshot["lines"],
+        "line_count": snapshot["line_count"],
+        "total_items": snapshot["total_items"],
         "subtotal": snapshot["subtotal"],
+        "final_pricing_note": snapshot["final_pricing_note"],
     }
 
 

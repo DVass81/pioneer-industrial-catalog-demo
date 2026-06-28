@@ -1,11 +1,14 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
+import base64
 from datetime import date
 from html import escape
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 
+from modules.cart import effective_price
 from modules.data_loader import load_customers, load_products
 from modules.styling import apply_global_styles
 
@@ -26,6 +29,15 @@ CATEGORY_MAP = {
     "Material Handling": "Material Handling",
 }
 
+ROOT = Path(__file__).resolve().parent
+IMAGE_MIME_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".svg": "image/svg+xml",
+    ".webp": "image/webp",
+}
+
 
 st.set_page_config(
     page_title="Taylor Field Tablet | Pioneer Industrial Sales",
@@ -43,16 +55,34 @@ def apply_tablet_styles() -> None:
         <style>
         .tablet-shell { padding-bottom: 1rem; }
         .tablet-hero { border: 1px solid #d9ddd6; border-radius: 8px; padding: 1rem; background: #ffffff; box-shadow: 0 8px 20px rgba(37,40,38,.06); }
+        .tablet-hero-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(240px, .8fr); gap: .9rem; align-items: stretch; }
+        .tablet-hero h3 { margin: 0 0 .35rem; color: #252826; font-size: 1.05rem; }
+        .tablet-hero p { margin: .2rem 0; color: #59615b; line-height: 1.35; }
+        .tablet-account-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .55rem; margin-top: .8rem; }
+        .tablet-account-fact { border: 1px solid #e3e6df; border-radius: 8px; padding: .65rem; background: #f8faf7; }
+        .tablet-account-fact label { display: block; color: #59615b; font-size: .68rem; font-weight: 900; text-transform: uppercase; }
+        .tablet-account-fact strong { display: block; margin-top: .15rem; color: #252826; font-size: .98rem; line-height: 1.2; overflow-wrap: anywhere; }
         .tablet-kpi { border: 1px solid #d9ddd6; border-radius: 8px; padding: .85rem; background: #ffffff; min-height: 108px; }
         .tablet-kpi label { display: block; color: #59615b; font-size: .72rem; font-weight: 900; text-transform: uppercase; }
         .tablet-kpi strong { display: block; color: #252826; font-size: 1.25rem; margin-top: .2rem; }
+        .tablet-kpi small { display: block; margin-top: .2rem; color: #59615b; line-height: 1.25; }
         .tablet-card { border: 1px solid #d9ddd6; border-radius: 8px; padding: 1rem; background: #ffffff; box-shadow: 0 8px 20px rgba(37,40,38,.06); margin-bottom: .75rem; }
         .tablet-card h3 { margin: 0 0 .4rem; }
         .tablet-pill { display: inline-block; border: 1px solid #d9ddd6; border-radius: 999px; padding: .25rem .55rem; margin: .15rem .2rem .15rem 0; background: #f5f6f3; color: #252826; font-size: .78rem; font-weight: 800; }
         .tablet-product { border: 1px solid #e3e6df; border-radius: 8px; padding: .85rem; background: #ffffff; min-height: 265px; }
+        .tablet-product-image { width: 100%; aspect-ratio: 4 / 3; border: 1px solid #e3e6df; border-radius: 8px; background: #f8faf7; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: .7rem; }
+        .tablet-product-image img { width: 100%; height: 100%; object-fit: contain; display: block; padding: .45rem; }
         .tablet-product h4 { margin: .3rem 0; font-size: 1rem; line-height: 1.2; }
         .tablet-product p { min-height: 3.2rem; color: #59615b; font-size: .84rem; }
+        .tablet-product-meta { color: #59615b; font-size: .86rem; line-height: 1.35; }
+        .tablet-product-meta strong { color: #252826; }
+        .visit-prep { border: 1px solid #d9ddd6; border-radius: 8px; padding: 1rem; background: #ffffff; box-shadow: 0 8px 20px rgba(37,40,38,.06); }
+        .visit-prep h3 { margin: 0 0 .35rem; }
+        .visit-prep p { margin: 0 0 .35rem; color: #59615b; }
         .handoff-box { border-left: 5px solid #4c6444; border-radius: 8px; padding: 1rem; background: #f4f7f2; }
+        @media (max-width: 900px) {
+            .tablet-hero-grid, .tablet-account-strip { grid-template-columns: 1fr; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -75,18 +105,41 @@ def money(value: float) -> str:
     return f"${float(value):,.2f}"
 
 
-def parse_discount(customer: dict) -> float:
-    raw = str(customer.get("contract_discount", "0")).replace("%", "").strip()
+def customer_field(customer: dict, key: str, fallback: str = "Not provided") -> str:
+    value = customer.get(key, fallback)
+    if pd.isna(value) or str(value).strip() == "":
+        return fallback
+    return str(value)
+
+
+def credit_limit_label(customer: dict) -> str:
+    raw = customer.get("credit_limit", "")
     try:
-        return max(0.0, min(float(raw), 80.0)) / 100
+        return money(float(raw))
+    except (TypeError, ValueError):
+        return str(raw) if str(raw).strip() else "Not provided"
+
+
+@st.cache_data(show_spinner=False)
+def image_src(image_ref: str) -> str:
+    if image_ref.startswith(("http://", "https://", "data:")):
+        return image_ref
+    image_path = (ROOT / image_ref).resolve()
+    try:
+        image_path.relative_to(ROOT)
     except ValueError:
-        return 0.0
+        return ""
+    if not image_path.exists() or not image_path.is_file():
+        return ""
+    mime_type = IMAGE_MIME_TYPES.get(image_path.suffix.lower(), "image/png")
+    encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+    return f"data:{mime_type};base64,{encoded}"
+
+
 
 
 def account_price(row, customer: dict) -> float:
-    discount = parse_discount(customer)
-    price = float(row.get("price", 0) or 0)
-    return round(price * (1 - discount), 2)
+    return effective_price(row, customer)
 
 
 def account_price_label(row, customer: dict) -> str:
@@ -100,7 +153,7 @@ def add_to_tablet_cart(product_id: str, quantity: int) -> None:
     quantity = max(1, int(quantity))
     cart = st.session_state.setdefault("cart", {})
     cart[product_id] = cart.get(product_id, 0) + quantity
-    st.toast("Added to Taylor's field order", icon="OK")
+    st.toast("Added to Taylor's field order")
 
 
 def preferred_categories(customer: dict, available_categories: list[str]) -> list[str]:
@@ -115,6 +168,9 @@ def preferred_categories(customer: dict, available_categories: list[str]) -> lis
 
 def customer_selector(customers: pd.DataFrame) -> dict:
     names = customers["customer_name"].tolist()
+    if not names:
+        st.error("No Stage 2 customer records are available.")
+        st.stop()
     if st.session_state.get("selected_customer_name") not in names:
         st.session_state["selected_customer_name"] = names[0]
     selected = st.sidebar.selectbox(
@@ -139,6 +195,8 @@ def cart_lines_for_customer(products: pd.DataFrame, customer: dict) -> list[dict
                 "product_id": product_id,
                 "sku": row.get("sku", row.get("SKU / Pioneer part number", product_id)),
                 "name": row.get("product_name", product_id),
+                "category": row.get("category", ""),
+                "manufacturer": row.get("manufacturer", ""),
                 "quantity": int(quantity),
                 "unit_price": unit_price,
                 "line_total": round(unit_price * int(quantity), 2),
@@ -149,6 +207,7 @@ def cart_lines_for_customer(products: pd.DataFrame, customer: dict) -> list[dict
 
 def customer_subtotal(products: pd.DataFrame, customer: dict) -> float:
     return round(sum(line["line_total"] for line in cart_lines_for_customer(products, customer)), 2)
+
 
 
 def render_sidebar(customer: dict, products: pd.DataFrame) -> None:
@@ -166,27 +225,61 @@ def render_sidebar(customer: dict, products: pd.DataFrame) -> None:
 def render_dashboard(customer: dict, products: pd.DataFrame) -> None:
     categories = sorted(products["category"].unique().tolist())
     prefs = preferred_categories(customer, categories)
+    account_notes = customer_field(customer, "account_notes", customer_field(customer, "notes"))
+    quote_history = customer_field(customer, "quote_history_placeholder", "Review recent quote activity with the customer.")
+    delivery_day = customer_field(customer, "preferred_delivery_day", "Scheduled")
     st.markdown('<div class="page-kicker">Taylor Field Tablet</div>', unsafe_allow_html=True)
     st.title(f"{customer['customer_name']} field visit")
     st.markdown(
         f"""
         <div class="tablet-hero">
-            <strong>{escape(customer['primary_contact'])}</strong> | {escape(customer['email'])} | {escape(customer['phone'])}<br>
-            {escape(customer['account_tier'])} account | {escape(customer['payment_terms'])} | Credit limit {escape(str(customer['credit_limit']))}<br>
-            {escape(customer['notes'])}
+            <div class="tablet-hero-grid">
+                <div>
+                    <h3>{escape(customer_field(customer, "primary_contact"))}</h3>
+                    <p>{escape(customer_field(customer, "email"))} | {escape(customer_field(customer, "phone"))}</p>
+                    <p>{escape(account_notes)}</p>
+                </div>
+                <div>
+                    <h3>Account summary</h3>
+                    <p><strong>{escape(customer_field(customer, "account_tier"))}</strong> account</p>
+                    <p>{escape(customer_field(customer, "payment_terms"))} | Credit limit {escape(credit_limit_label(customer))}</p>
+                    <p>Preferred delivery: {escape(delivery_day)}</p>
+                </div>
+            </div>
+            <div class="tablet-account-strip">
+                <div class="tablet-account-fact"><label>Location</label><strong>{escape(customer_field(customer, "location"))}</strong></div>
+                <div class="tablet-account-fact"><label>Industry</label><strong>{escape(customer_field(customer, "industry"))}</strong></div>
+                <div class="tablet-account-fact"><label>Recent context</label><strong>{escape(quote_history)}</strong></div>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
     kpis = st.columns(4)
-    kpis[0].markdown(f'<div class="tablet-kpi"><label>Sales rep</label><strong>Taylor</strong></div>', unsafe_allow_html=True)
-    kpis[1].markdown(f'<div class="tablet-kpi"><label>Contract discount</label><strong>{escape(str(customer.get("contract_discount", "0%")))}</strong></div>', unsafe_allow_html=True)
-    kpis[2].markdown(f'<div class="tablet-kpi"><label>Preferred categories</label><strong>{len(prefs)}</strong></div>', unsafe_allow_html=True)
-    kpis[3].markdown(f'<div class="tablet-kpi"><label>Catalog products</label><strong>{len(products)}</strong></div>', unsafe_allow_html=True)
+    kpis[0].markdown('<div class="tablet-kpi"><label>Sales rep</label><strong>Taylor</strong><small>Field visit owner</small></div>', unsafe_allow_html=True)
+    kpis[1].markdown(f'<div class="tablet-kpi"><label>Contract discount</label><strong>{escape(str(customer.get("contract_discount", "0%")))}</strong><small>Applied in account pricing</small></div>', unsafe_allow_html=True)
+    kpis[2].markdown(f'<div class="tablet-kpi"><label>Preferred categories</label><strong>{len(prefs)}</strong><small>{escape(", ".join(prefs[:2]))}</small></div>', unsafe_allow_html=True)
+    in_stock_count = len(products.loc[products["quantity_in_stock"] > 0])
+    kpis[3].markdown(f'<div class="tablet-kpi"><label>Catalog products</label><strong>{len(products)}</strong><small>{in_stock_count} in stock</small></div>', unsafe_allow_html=True)
 
     st.markdown("### Account focus")
     st.markdown("".join(f'<span class="tablet-pill">{escape(category)}</span>' for category in prefs), unsafe_allow_html=True)
+
+    st.markdown(
+        """
+        <div class="visit-prep">
+            <h3>Visit prep</h3>
+            <p>Use this quick field check before building the quote.</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    prep_key = customer_field(customer, "customer_id", customer_field(customer, "customer_name"))
+    prep_cols = st.columns(3)
+    prep_cols[0].checkbox("Confirm replenishment priorities", key=f"prep_priorities_{prep_key}")
+    prep_cols[1].checkbox("Verify delivery window", key=f"prep_delivery_{prep_key}")
+    prep_cols[2].checkbox("Capture substitution notes", key=f"prep_subs_{prep_key}")
 
     st.markdown("### Recommended for this visit")
     recommended = products.loc[products["category"].isin(prefs)].sort_values(["is_icc_supply", "quantity_in_stock"], ascending=[False, False]).head(6)
@@ -201,23 +294,31 @@ def render_product_tiles(rows: pd.DataFrame, customer: dict, key_prefix: str) ->
         cols = st.columns(3)
         for col, (_, row) in zip(cols, rows.iloc[chunk_start : chunk_start + 3].iterrows()):
             with col:
-                image_ref = str(row.get("image_ref") or row.get("image_url") or "")
-                if image_ref:
-                    st.image(image_ref, width="stretch")
+                image_ref = str(row.get("image_url") or row.get("image_ref") or "")
+                image_markup = ""
+                src = image_src(image_ref) if image_ref else ""
+                if src:
+                    product_name = escape(str(row["product_name"]))
+                    image_markup = f'<div class="tablet-product-image"><img src="{escape(src)}" alt="{product_name}"></div>'
                 st.markdown(
                     f"""
                     <div class="tablet-product">
+                        {image_markup}
                         <span class="tablet-pill">{escape(str(row['category']))}</span>
                         <h4>{escape(str(row['product_name']))}</h4>
                         <p>{escape(str(row['description']))}</p>
-                        <strong>{escape(str(row['sku']))}</strong><br>
-                        Stock: {int(row['quantity_in_stock']):,} | Account price: {account_price_label(row, customer)}
+                        <div class="tablet-product-meta">
+                            <strong>{escape(str(row['sku']))}</strong><br>
+                            Stock: {int(row['quantity_in_stock']):,}<br>
+                            Account price: <strong>{account_price_label(row, customer)}</strong>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True,
                 )
-                qty = st.number_input("Qty", min_value=1, value=1, step=1, key=f"{key_prefix}_qty_{row['product_id']}")
-                if st.button("Add", key=f"{key_prefix}_add_{row['product_id']}", width="stretch"):
+                stock = max(0, int(row["quantity_in_stock"]))
+                qty = st.number_input("Qty", min_value=1, max_value=max(1, stock), value=1, step=1, key=f"{key_prefix}_qty_{row['product_id']}", disabled=stock <= 0)
+                if st.button("Add", key=f"{key_prefix}_add_{row['product_id']}", width="stretch", disabled=stock <= 0):
                     add_to_tablet_cart(row["product_id"], qty)
 
 
@@ -243,9 +344,73 @@ def render_lookup(customer: dict, products: pd.DataFrame) -> None:
     render_product_tiles(filtered.head(24), customer, key_prefix="lookup")
 
 
+def tablet_customer_handoff(customer: dict) -> dict:
+    return {
+        "customer_name": customer.get("customer_name", "Demo customer"),
+        "customer_id": customer.get("customer_id", ""),
+        "industry": customer.get("industry", ""),
+        "location": customer.get("location", ""),
+        "account_tier": customer.get("account_tier", ""),
+        "payment_terms": customer.get("payment_terms", ""),
+        "credit_limit": customer.get("credit_limit", ""),
+        "assigned_sales_rep": customer.get("assigned_sales_rep", "Taylor"),
+        "notes": customer.get("notes", ""),
+    }
+
+
+def tablet_contact_handoff(customer: dict) -> dict:
+    return {
+        "primary_contact": customer.get("primary_contact", ""),
+        "email": customer.get("email", ""),
+        "phone": customer.get("phone", ""),
+    }
+
+
+def build_tablet_handoff_order(
+    order_number: str,
+    customer: dict,
+    lines: list[dict],
+    needed_by: date,
+    delivery_window: str,
+    delivery_notes: str,
+) -> dict:
+    subtotal = round(sum(line["line_total"] for line in lines), 2)
+    total_items = sum(line["quantity"] for line in lines)
+    rush_review = delivery_window == "Rush review" or needed_by <= date.today()
+    return {
+        "order_number": order_number,
+        "request_type": "tablet_warehouse_handoff_preview",
+        "customer": customer.get("customer_name", "Demo customer"),
+        "customer_metadata": tablet_customer_handoff(customer),
+        "contact": tablet_contact_handoff(customer),
+        "order_metadata": {
+            "created_by": "Taylor",
+            "needed_by": str(needed_by),
+            "delivery_window": delivery_window,
+            "priority": "Rush review" if rush_review else "Standard route planning",
+            "stage": "Stage 2 tablet preview",
+        },
+        "lines": lines,
+        "subtotal": subtotal,
+        "line_count": len(lines),
+        "total_items": total_items,
+        "needed_by": str(needed_by),
+        "delivery_window": delivery_window,
+        "delivery_notes": delivery_notes.strip(),
+        "pull_ticket_status": "Ready for Stage 3 WMS build",
+        "warehouse_checklist": [
+            "Confirm on-hand stock and substitutions.",
+            "Validate route, freight, tax, and payment terms.",
+            "Create WMS pull ticket after Pioneer confirmation.",
+        ],
+    }
+
+
 def render_order_builder(customer: dict, products: pd.DataFrame) -> None:
     st.markdown('<div class="page-kicker">Field Quote / Order Builder</div>', unsafe_allow_html=True)
     st.title("Prepare customer quote")
+    if st.session_state.get("last_tablet_order_number"):
+        st.success(f"Created warehouse handoff preview {st.session_state['last_tablet_order_number']}.")
     lines = cart_lines_for_customer(products, customer)
     if not lines:
         st.info("No products added yet. Use Dashboard recommendations or Product Lookup to build the order.")
@@ -254,7 +419,9 @@ def render_order_builder(customer: dict, products: pd.DataFrame) -> None:
         with st.container(border=True):
             cols = st.columns([3, 1, 1, 1])
             cols[0].markdown(f"**{line['name']}**  \n`{line['sku']}`")
-            new_qty = cols[1].number_input("Qty", min_value=1, value=line["quantity"], key=f"tablet_cart_qty_{line['product_id']}")
+            stock_match = products.loc[products["product_id"] == line["product_id"]]
+            available_stock = int(stock_match.iloc[0]["quantity_in_stock"]) if not stock_match.empty else line["quantity"]
+            new_qty = cols[1].number_input("Qty", min_value=1, max_value=max(1, available_stock), value=min(line["quantity"], max(1, available_stock)), key=f"tablet_cart_qty_{line['product_id']}")
             st.session_state["cart"][line["product_id"]] = int(new_qty)
             cols[2].markdown(f"**{money(line['unit_price'])}**  \n{money(line['unit_price'] * int(new_qty))}")
             if cols[3].button("Remove", key=f"tablet_remove_{line['product_id']}"):
@@ -272,17 +439,17 @@ def render_order_builder(customer: dict, products: pd.DataFrame) -> None:
     if submit:
         order_number = f"PIS-FIELD-{st.session_state.get('quote_counter', 2001)}"
         st.session_state["quote_counter"] = st.session_state.get("quote_counter", 2001) + 1
-        st.session_state.setdefault("tablet_orders", []).append(
-            {
-                "order_number": order_number,
-                "customer": customer["customer_name"],
-                "lines": cart_lines_for_customer(products, customer),
-                "subtotal": customer_subtotal(products, customer),
-                "needed_by": str(needed_by),
-                "delivery_window": delivery_window,
-                "delivery_notes": delivery_notes,
-            }
+        submitted_lines = cart_lines_for_customer(products, customer)
+        handoff_order = build_tablet_handoff_order(
+            order_number,
+            customer,
+            submitted_lines,
+            needed_by,
+            delivery_window,
+            delivery_notes,
         )
+        st.session_state.setdefault("tablet_orders", []).append(handoff_order)
+        st.session_state["last_tablet_order_number"] = order_number
         st.session_state["cart"] = {}
         st.success(f"Created warehouse handoff preview {order_number}")
         st.rerun()
@@ -295,20 +462,59 @@ def render_handoff(products: pd.DataFrame) -> None:
     if not orders:
         st.info("No field orders submitted yet. Create one from the Order Builder to preview WMS handoff.")
         return
+    st.caption(f"{len(orders)} session handoff preview(s) preserved for this tablet visit.")
     for order in reversed(orders):
+        customer_metadata = order.get("customer_metadata", {})
+        contact = order.get("contact", {})
+        order_metadata = order.get("order_metadata", {})
         st.markdown(
             f"""
             <div class="handoff-box">
                 <h3>{escape(order['order_number'])}</h3>
-                <strong>{escape(order['customer'])}</strong> | Needed by {escape(order['needed_by'])} | {escape(order['delivery_window'])}<br>
-                Pull ticket status: Ready for Stage 3 WMS build
+                <strong>{escape(order.get('customer', customer_metadata.get('customer_name', 'Demo customer')))}</strong> | Needed by {escape(order.get('needed_by', order_metadata.get('needed_by', '')))} | {escape(order.get('delivery_window', order_metadata.get('delivery_window', '')))}<br>
+                Pull ticket status: {escape(order.get('pull_ticket_status', 'Ready for Stage 3 WMS build'))}
             </div>
             """,
             unsafe_allow_html=True,
         )
-        for line in order["lines"]:
-            st.markdown(f"- `{line['sku']}` {line['quantity']} x {line['name']}")
-        st.caption(order.get("delivery_notes", ""))
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Lines", order.get("line_count", len(order.get("lines", []))))
+        c2.metric("Pieces", order.get("total_items", sum(line.get("quantity", 0) for line in order.get("lines", []))))
+        c3.metric("Subtotal", money(order.get("subtotal", 0)))
+        c4.metric("Priority", order_metadata.get("priority", "Standard"))
+
+        st.markdown(
+            f"**Contact:** {escape(str(contact.get('primary_contact', '')))} | "
+            f"{escape(str(contact.get('email', '')))} | {escape(str(contact.get('phone', '')))}"
+        )
+        st.caption(
+            "Account: "
+            f"{customer_metadata.get('account_tier', '')} | "
+            f"{customer_metadata.get('payment_terms', '')} | "
+            f"Credit limit {customer_metadata.get('credit_limit', '')}"
+        )
+
+        line_rows = [
+            {
+                "SKU": line.get("sku", ""),
+                "Product": line.get("name", ""),
+                "Category": line.get("category", ""),
+                "Qty": line.get("quantity", 0),
+                "Unit": money(line.get("unit_price", 0)),
+                "Line total": money(line.get("line_total", 0)),
+            }
+            for line in order.get("lines", [])
+        ]
+        if line_rows:
+            st.dataframe(line_rows, width="stretch", hide_index=True)
+
+        checklist = order.get("warehouse_checklist", [])
+        if checklist:
+            st.markdown("**Warehouse checklist**")
+            for item in checklist:
+                st.markdown(f"- {escape(str(item))}")
+        if order.get("delivery_notes"):
+            st.caption(f"Field notes: {order['delivery_notes']}")
 
 
 def main() -> None:
@@ -339,5 +545,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
