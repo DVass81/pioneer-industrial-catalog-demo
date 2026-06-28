@@ -130,8 +130,17 @@ python scripts\audit_product_photos.py
 
 The audit writes `data/product_photo_review_queue.csv`, which tracks product images that still need exact-photo replacement or cleaner attribution. Current known review categories are:
 
+- Remote image refs: product currently displays a Replit-imported image URL instead of a local cleared asset.
 - Similar-photo matches: product has a local real image, but the image is only a close visual stand-in.
 - Missing direct source URL: product image renders locally, but the attribution row needs a cleaner original source URL/license record.
+
+The live catalog can be rebuilt from Replit reference data with:
+
+```powershell
+python scripts\\convert_replit_catalog.py
+```
+
+The current Replit-derived catalog uses remote image URLs from the published Replit app for internal demo comparison. Before an external/customer demo, replace those remote images with local cleared or generated demo visuals.
 
 Do not use automated keyword-only image replacements for the final customer demo unless the image title/source clearly matches the product type. Bad image matches are worse than leaving a known review item in the queue.
 
