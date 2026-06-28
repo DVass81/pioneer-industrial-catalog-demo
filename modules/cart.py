@@ -4,6 +4,8 @@ from datetime import date
 
 import streamlit as st
 
+from modules.customers import customer_pricing_multiplier, customer_tablet_summary
+
 
 FINAL_PRICING_NOTE = "Final pricing confirmed by Pioneer sales representative."
 PIONEER_CONTACT_TEXT = "Questions or rush needs? Call Pioneer Industrial Sales so the team can help confirm options."
@@ -23,7 +25,9 @@ def _row_value(row, *keys, default=None):
 
 
 def effective_price(row, customer: dict | None = None) -> float:
-    return round(float(_row_value(row, "price", "customer_specific_price", default=0) or 0) * PUBLIC_PRICE_MULTIPLIER, 2)
+    base_price = float(_row_value(row, "price", "customer_specific_price", default=0) or 0)
+    multiplier = customer_pricing_multiplier(customer) if customer else PUBLIC_PRICE_MULTIPLIER
+    return round(base_price * multiplier, 2)
 
 
 def add_to_cart(product_id: str, quantity: int) -> None:
@@ -33,19 +37,21 @@ def add_to_cart(product_id: str, quantity: int) -> None:
     st.toast("Added to quote cart", icon="OK")
 
 
-def cart_lines(products) -> list[dict]:
+def cart_lines(products, customer: dict | None = None) -> list[dict]:
     lines = []
     for product_id, quantity in st.session_state.get("cart", {}).items():
         match = products.loc[products["product_id"] == product_id]
         if match.empty:
             continue
         row = match.iloc[0]
-        unit_price = effective_price(row)
+        unit_price = effective_price(row, customer)
         lines.append(
             {
                 "product_id": product_id,
                 "sku": _row_value(row, "sku", "SKU / Pioneer part number", default=product_id),
                 "name": _row_value(row, "product_name", "name", default=product_id),
+                "category": _row_value(row, "category", default=""),
+                "subcategory": _row_value(row, "subcategory", default=""),
                 "quantity": int(quantity),
                 "unit_price": unit_price,
                 "line_total": round(unit_price * int(quantity), 2),
@@ -54,8 +60,48 @@ def cart_lines(products) -> list[dict]:
     return lines
 
 
-def cart_subtotal(products) -> float:
-    return round(sum(line["line_total"] for line in cart_lines(products)), 2)
+def cart_subtotal(products, customer: dict | None = None) -> float:
+    return round(sum(line["line_total"] for line in cart_lines(products, customer)), 2)
+
+
+def build_quote_snapshot(
+    products,
+    contact_details: dict | None = None,
+    customer: dict | None = None,
+    request_type: str = "quote",
+) -> dict:
+    lines = cart_lines(products, customer)
+    subtotal = round(sum(line["line_total"] for line in lines), 2)
+    snapshot = {
+        "request_type": request_type,
+        "contact": contact_details or {},
+        "lines": lines,
+        "subtotal": subtotal,
+        "total_items": sum(line["quantity"] for line in lines),
+        "final_pricing_note": FINAL_PRICING_NOTE,
+    }
+    if customer:
+        snapshot["customer"] = customer_tablet_summary(customer)
+    return snapshot
+
+
+def build_warehouse_handoff_preview(
+    products,
+    quote_number: str,
+    customer: dict | None = None,
+    delivery_notes: str = "",
+) -> dict:
+    snapshot = build_quote_snapshot(products, customer=customer, request_type="warehouse_handoff_preview")
+    customer_summary = snapshot.get("customer", {})
+    return {
+        "quote_number": quote_number,
+        "customer_name": customer_summary.get("customer_name", "Public quote request"),
+        "assigned_sales_rep": customer_summary.get("assigned_sales_rep", "Taylor"),
+        "delivery_notes": delivery_notes,
+        "pull_ticket_status": "Preview only - Stage 3 WMS will create the pull ticket.",
+        "lines": snapshot["lines"],
+        "subtotal": snapshot["subtotal"],
+    }
 
 
 def render_quote_sidebar(products) -> None:
@@ -135,19 +181,14 @@ def _contact_form() -> dict | None:
     }
 
 
-def submit_quote(products, contact_details: dict) -> str:
+def submit_quote(products, contact_details: dict, customer: dict | None = None) -> str:
     if not st.session_state.get("cart"):
         return ""
     quote_number = f"PIS-QR-{st.session_state.get('quote_counter', 1001)}"
     st.session_state["quote_counter"] = st.session_state.get("quote_counter", 1001) + 1
-    st.session_state.setdefault("quote_requests", []).append(
-        {
-            "quote_number": quote_number,
-            "contact": contact_details,
-            "lines": cart_lines(products),
-            "subtotal": cart_subtotal(products),
-        }
-    )
+    quote_request = build_quote_snapshot(products, contact_details, customer)
+    quote_request["quote_number"] = quote_number
+    st.session_state.setdefault("quote_requests", []).append(quote_request)
     st.session_state["cart"] = {}
     st.session_state["last_quote_number"] = quote_number
     return quote_number

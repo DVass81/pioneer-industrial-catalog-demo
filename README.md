@@ -35,6 +35,25 @@ Stage 2 and later can add a tablet-friendly sales-rep workflow for in-person wal
 - Customer-context views optimized for tablet use during field visits, counter conversations, or trade-show demos.
 - Clear separation from the public catalog so customer-style demo data does not appear on the public site.
 
+## Stage 2 Taylor Tablet App
+
+Stage 2 is a separate Streamlit entrypoint for Taylor's field workflow:
+
+```powershell
+streamlit run tablet_app.py
+```
+
+Recommended local development ports:
+
+```powershell
+streamlit run app.py --server.port 8501
+streamlit run tablet_app.py --server.port 8502
+```
+
+The tablet app is rep-facing and uses the Stage 2 demo customers in `data/demo_customers.csv`. It includes account selection, customer notes, preferred-category recommendations, field product lookup, quote/order building, and a warehouse handoff preview for the future WMS stage.
+
+For Streamlit Cloud, create a second app from the same GitHub repo and set the main file path to `tablet_app.py`. Keep the public catalog deployed from `app.py`.
+
 ## Local Setup
 
 Use Python 3.10 or newer.
