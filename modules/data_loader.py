@@ -48,7 +48,9 @@ def _category_image(category: str) -> str:
 
 def _existing_image_path(row: pd.Series) -> str:
     image_url = str(row.get("image_url") or row.get("image_ref") or "")
-    if image_url and not image_url.startswith(("http://", "https://")) and (ROOT / image_url).exists():
+    if image_url.startswith(("http://", "https://")):
+        return image_url
+    if image_url and (ROOT / image_url).exists():
         return image_url
 
     product_id = str(row.get("product_id", "")).lower()

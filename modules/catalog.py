@@ -28,6 +28,16 @@ SEARCH_FIELDS = [
     "tags",
 ]
 CATEGORY_DESCRIPTIONS = {
+    "Bearings": "Ball, roller, and plain bearings for industrial applications.",
+    "Power Transmission": "Belts, pulleys, sprockets, couplings, and drive components.",
+    "Abrasives": "Grinding wheels, flap discs, and surface finishing products.",
+    "Fasteners": "Bolts, nuts, washers, screws, and industrial fastening hardware.",
+    "Electrical": "Switches, relays, wire management, and electrical components.",
+    "Safety Supplies": "PPE, safety equipment, and workplace safety products.",
+    "Lubricants": "Machine oils, greases, and industrial lubrication supplies.",
+    "MRO Supplies": "Maintenance, repair, and operations consumables.",
+    "Electrical Insulation": "Varnishes, resins, surge ropes, tapes, and insulating films.",
+    "Specialty Tapes & Films": "Polyester, Kapton, fiberglass, and specialty adhesive tapes and films.",
     "PPE & Safety": "Gloves, glasses, hard hats, lockout supplies, and jobsite protection.",
     "Abrasives & Grinding": "Cut-off wheels, flap discs, belts, brushes, and finishing supplies.",
     "Fasteners & Anchors": "Bolts, nuts, washers, anchors, screws, rivets, rods, and kits.",
@@ -138,12 +148,13 @@ def _image_data_uri(image_ref: str) -> str:
 
 
 def render_image_frame(image_ref: str, alt_text: str, css_class: str = "catalog-image-frame") -> None:
-    data_uri = _image_data_uri(str(image_ref))
-    if not data_uri:
+    image_ref = str(image_ref)
+    image_src = image_ref if image_ref.startswith(("http://", "https://")) else _image_data_uri(image_ref)
+    if not image_src:
         st.markdown(f'<div class="{css_class}"><span>Image unavailable</span></div>', unsafe_allow_html=True)
         return
     st.markdown(
-        f'<div class="{css_class}"><img src="{data_uri}" alt="{escape(alt_text)}"></div>',
+        f'<div class="{css_class}"><img src="{escape(image_src, quote=True)}" alt="{escape(alt_text)}"></div>',
         unsafe_allow_html=True,
     )
 
@@ -276,7 +287,7 @@ def render_catalog_page(products, customer: dict | None = None) -> None:
     st.markdown('<div class="page-kicker">Industrial Catalog</div>', unsafe_allow_html=True)
     st.title("Browse Pioneer supplies by product type")
     st.markdown(
-        '<div class="demo-flow-note">Demo path: choose a category such as Fasteners & Anchors, open a product detail, add it to the quote cart, then submit a request quote.</div>',
+        '<div class="demo-flow-note">Demo path: choose a category such as Fasteners, open a product detail, add it to the quote cart, then submit a request quote.</div>',
         unsafe_allow_html=True,
     )
 
