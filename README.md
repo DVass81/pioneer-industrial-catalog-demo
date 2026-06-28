@@ -94,15 +94,18 @@ If the app needs private keys or credentials later, add them in Streamlit Cloud 
 
 Use the deployed Streamlit URL to review the Phase 1 public catalog experience.
 
-Recommended Phase 1 review flow:
+Recommended presenter path:
 
 1. Open the app in a fresh browser window.
-2. Confirm the page loads without install prompts or errors.
-3. Browse the public catalog from top to bottom.
-4. Use search, filters, product detail views, and quote-cart controls in a realistic order.
-5. Call out that the data is sample data for demonstration only.
-6. End by showing the quote-request path or expected buyer decision point.
+2. Start on **Home** and frame Phase 1 as the public Pioneer inventory and quote request website.
+3. Open **Product Catalog** and show that products are organized by category, not dumped into one long SKU list.
+4. Select **Fasteners & Anchors** to demonstrate product-type browsing, then narrow with the product type filter if useful.
+5. Open a product detail view and call out the SKU, manufacturer part number, stock, lead time, bin/location, and product image.
+6. Add the item to the quote cart, then open **Quote Cart** to adjust quantity or remove the line.
+7. Open **Request Quote**, enter sample contact details, and submit to show the `PIS-QR-####` confirmation flow.
+8. End by explaining that Pioneer confirms final pricing, availability, delivery, and payment instructions after the request.
 
+Keep the walkthrough practical and buyer-focused: category browse, product detail, quote cart, request quote. Avoid presenting customer-specific accounts or Taylor's field tablet workflow in Phase 1.
 Before sharing externally, confirm the URL, product data, brand copy, and public-facing demo script with the project owner. Do not present demo customer accounts on the public site; those belong to the Stage 2 tablet-mode workflow.
 
 ## Brand and Theme Notes
@@ -116,6 +119,21 @@ The rebuilt Pioneer demo uses a light Streamlit shell with olive green, charcoal
 - App logo asset: `assets/pioneer_logo.png`
 
 Keep `.streamlit/config.toml` aligned with the app-level CSS in `modules/styling.py` so Streamlit widgets, buttons, sidebar behavior, and the custom page styling feel like one brand system.
+
+## Photo QA Status
+
+Phase 1.5 includes a repeatable photo audit for demo readiness:
+
+```powershell
+python scripts\audit_product_photos.py
+```
+
+The audit writes `data/product_photo_review_queue.csv`, which tracks product images that still need exact-photo replacement or cleaner attribution. Current known review categories are:
+
+- Similar-photo matches: product has a local real image, but the image is only a close visual stand-in.
+- Missing direct source URL: product image renders locally, but the attribution row needs a cleaner original source URL/license record.
+
+Do not use automated keyword-only image replacements for the final customer demo unless the image title/source clearly matches the product type. Bad image matches are worse than leaving a known review item in the queue.
 
 ## Demo Data Note
 

@@ -54,6 +54,7 @@ def apply_catalog_styles() -> None:
         .catalog-summary strong { color: #101722; font-size: 1rem; }
         .catalog-summary span { color: #56616F; font-size: .82rem; font-weight: 700; text-transform: uppercase; }
         .catalog-filter-note { color: #56616F; font-size: .83rem; margin-top: -.3rem; }
+        .demo-flow-note { margin: .35rem 0 1rem; padding: .7rem .85rem; border-left: 4px solid #4c6444; border-radius: 6px; background: #F4F7F2; color: #2E3744; font-size: .88rem; font-weight: 700; }
         .category-browser { margin: .25rem 0 1rem; }
         .category-card { min-height: 178px; border: 1px solid #D8DDE5; border-radius: 8px; padding: .95rem; background: #FFFFFF; box-shadow: 0 8px 18px rgba(16,23,34,.07); }
         .category-card h3 { margin: .15rem 0 .35rem; font-size: 1.02rem; line-height: 1.2; color: #101722; }
@@ -274,6 +275,10 @@ def render_catalog_page(products, customer: dict | None = None) -> None:
     products = prepare_catalog_products(products)
     st.markdown('<div class="page-kicker">Industrial Catalog</div>', unsafe_allow_html=True)
     st.title("Browse Pioneer supplies by product type")
+    st.markdown(
+        '<div class="demo-flow-note">Demo path: choose a category such as Fasteners & Anchors, open a product detail, add it to the quote cart, then submit a request quote.</div>',
+        unsafe_allow_html=True,
+    )
 
     category_options = ["All"] + sorted(products["category"].unique().tolist())
     if "catalog_category" not in st.session_state or st.session_state["catalog_category"] not in category_options:
