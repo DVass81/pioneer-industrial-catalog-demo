@@ -54,6 +54,18 @@ The tablet app is rep-facing and uses the Stage 2 demo customers in `data/demo_c
 
 For Streamlit Cloud, create a second app from the same GitHub repo and set the main file path to `tablet_app.py`. Keep the public catalog deployed from `app.py`.
 
+
+## Internal Design Director
+
+The Pioneer Design Director Pipeline is an internal planning foundation for future catalog, tablet, and WMS screens. It lives in `design-director/` and should be used before major UI builds to create stronger briefs, component direction, and Codex implementation prompts.
+
+Run the internal developer app separately from the public catalog:
+
+```powershell
+streamlit run design_director_app.py --server.port 8503
+```
+
+Do not deploy `design_director_app.py` as the customer-facing Streamlit app. The public catalog remains `app.py`, and Taylor's field tablet remains `tablet_app.py`.
 ## Local Setup
 
 Use Python 3.10 or newer.
