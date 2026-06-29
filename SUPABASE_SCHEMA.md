@@ -4,7 +4,7 @@ Pioneer project: Pioneer Industrial Demo (dujcsbzqznucqpuyjsdy), separate from C
 
 Use this schema when moving the local demo workflow store from SQLite to Supabase/Postgres.
 
-This data is operational/internal. Do not expose the service role key in browser code. In this Streamlit app, secrets belong in Streamlit Cloud secrets.
+This data is operational/internal. Do not expose the service role key in browser code. In this Streamlit app, secrets belong in Streamlit Cloud secrets. The service role is used only by server-side Streamlit code for the demo.
 
 ```sql
 create table if not exists public.field_orders (

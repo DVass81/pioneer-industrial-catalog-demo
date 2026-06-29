@@ -40,14 +40,15 @@ Create three separate Streamlit Cloud apps from that same repository.
 4. Pick the GitHub repo above.
 5. Choose branch `main`.
 6. Enter the main file path for the system you are deploying.
-7. Deploy.
-8. Repeat for the other two systems.
+7. Add the shared persistence secrets below to each app.
+8. Deploy.
+9. Repeat for the other two systems.
 
-## Secrets For Shared Cloud Persistence
+## Shared Persistence Secrets
 
-Local demo handoff uses SQLite at `data/demo_workflow.sqlite3`. Streamlit Cloud apps do not share local files, so hosted persistence needs database secrets.
+Local demo handoff uses SQLite at `data/demo_workflow.sqlite3`. Streamlit Cloud apps do not share local files, so all three cloud apps need the same Pioneer Supabase secrets.
 
-When Supabase/Postgres is ready, add these secrets to all three Streamlit apps:
+Add these secrets to all three Streamlit apps:
 
 ```toml
 SUPABASE_URL = "https://dujcsbzqznucqpuyjsdy.supabase.co"
@@ -59,7 +60,18 @@ Keep these values in Streamlit Secrets only. Do not commit them to GitHub.
 
 ## Pioneer Supabase Project
 
-- Project name: Pioneer Industrial Demo (separate from CBS Intelligence Pilot)
-- Project ref: dujcsbzqznucqpuyjsdy 
-- Region: us-east-2 
-- Database tables created: ield_orders, ield_order_lines, wms_ticket_events 
+- Project name: `Pioneer Industrial Demo`
+- Project ref: `dujcsbzqznucqpuyjsdy`
+- Region: `us-east-2`
+- Separate from: `CBS Intelligence Pilot`
+- Database tables: `field_orders`, `field_order_lines`, `wms_ticket_events`
+
+## Taylor Demo Cloud Check
+
+After all three apps are deployed:
+
+1. Open the tablet app and submit a test ICC International field order.
+2. Open the WMS app and click **Refresh queue**.
+3. Confirm the submitted order appears as a pull ticket.
+4. Change the ticket status and picker in WMS.
+5. Confirm the WMS command center shows the new event in recent ticket activity.
