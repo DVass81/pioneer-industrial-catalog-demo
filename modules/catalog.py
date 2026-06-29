@@ -60,26 +60,26 @@ def apply_catalog_styles() -> None:
     st.markdown(
         """
         <style>
-        .catalog-summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: .85rem 0 .65rem; padding: .65rem .8rem; border: 1px solid #E2E5EA; border-radius: 8px; background: #F8FAFC; }
+        .catalog-summary { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: .85rem 0 .65rem; padding: .65rem .8rem; border: 1px solid #D8DDE5; border-radius: 8px; background: #FFFFFF; }
         .catalog-summary strong { color: #101722; font-size: 1rem; }
         .catalog-summary span { color: #56616F; font-size: .82rem; font-weight: 700; text-transform: uppercase; }
         .catalog-filter-note { color: #56616F; font-size: .83rem; margin-top: -.3rem; }
         .demo-flow-note { margin: .35rem 0 1rem; padding: .7rem .85rem; border-left: 4px solid #4c6444; border-radius: 6px; background: #F4F7F2; color: #2E3744; font-size: .88rem; font-weight: 700; }
         .category-browser { margin: .25rem 0 1rem; }
-        .category-card { min-height: 178px; border: 1px solid #D8DDE5; border-radius: 8px; padding: .95rem; background: #FFFFFF; box-shadow: 0 8px 18px rgba(16,23,34,.07); }
+        .category-card { min-height: 156px; border: 1px solid #D8DDE5; border-radius: 8px; padding: .95rem; background: #FFFFFF; box-shadow: 0 8px 18px rgba(16,23,34,.07); }
         .category-card h3 { margin: .15rem 0 .35rem; font-size: 1.02rem; line-height: 1.2; color: #101722; }
-        .category-card p { min-height: 3.25rem; margin: .25rem 0 .55rem; color: #56616F; font-size: .84rem; line-height: 1.35; }
+        .category-card p { margin: .25rem 0 .55rem; color: #56616F; font-size: .84rem; line-height: 1.35; }
         .category-card .category-count { color: #4c6444; font-size: .78rem; font-weight: 900; text-transform: uppercase; }
         .subcategory-strip { display: flex; flex-wrap: wrap; gap: .4rem; margin: .45rem 0 .9rem; }
         .subcategory-pill { border: 1px solid #D8DDE5; border-radius: 999px; padding: .24rem .55rem; background: #FFFFFF; color: #2E3744; font-size: .75rem; font-weight: 800; }
         .catalog-empty-state { border: 1px solid #D8DDE5; border-radius: 8px; background: #FFFFFF; padding: 1rem; color: #2E3744; }
-        .product-card { position: relative; min-height: 585px; padding: .8rem; border: 1px solid #D8DDE5; border-radius: 8px; background: #FFFFFF; box-shadow: 0 8px 18px rgba(16,23,34,.07); margin-bottom: 1rem; }
-        .catalog-image-frame { width: 100%; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #ECEFF3; border-radius: 6px; background: #FFFFFF; }
+        .product-card { position: relative; min-height: 455px; padding: .8rem; border: 1px solid #D8DDE5; border-radius: 8px; background: #FFFFFF; box-shadow: 0 8px 18px rgba(16,23,34,.07); margin-bottom: 1rem; }
+        .catalog-image-frame { width: 100%; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #ECEFF3; border-radius: 6px; background: #F8FAFC; }
         .catalog-image-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
         .detail-image-frame { width: 100%; max-width: 640px; aspect-ratio: 4 / 3; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #E0E3E8; border-radius: 8px; background: #FFFFFF; box-shadow: 0 8px 20px rgba(16,23,34,.06); }
         .detail-image-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
         .product-card h3 { margin: .25rem 0 .3rem; min-height: 2.45rem; font-size: 1rem; line-height: 1.2; }
-        .product-card p { margin: .45rem 0 .55rem; min-height: 3.55rem; font-size: .84rem; line-height: 1.35; color: #56616F; }
+        .product-card p { margin: .45rem 0 .55rem; font-size: .84rem; line-height: 1.35; color: #56616F; }
         .product-meta { display: flex; align-items: center; justify-content: space-between; gap: .45rem; margin-top: .65rem; color: #56616F; font-size: .72rem; font-weight: 800; text-transform: uppercase; }
         .product-meta span { overflow-wrap: anywhere; }
         .product-badges { margin: .35rem 0 .3rem; min-height: 1.55rem; }
@@ -93,6 +93,20 @@ def apply_catalog_styles() -> None:
         .badge-special { border-color: #D9DEE7; }
         .badge-reorder { border-color: #F2E49A; }
         .badge-featured { box-shadow: inset 0 -1px 0 rgba(0,0,0,.18); }
+        .catalog-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin: .35rem 0 .7rem; color: #56616F; font-size: .86rem; font-weight: 800; }
+        .catalog-breadcrumb strong { color: #252826; }
+        .catalog-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0 .8rem; }
+        .product-row-shell { border: 1px solid #D8DDE5; border-radius: 8px; padding: .75rem; background: #FFFFFF; box-shadow: 0 8px 18px rgba(16,23,34,.06); margin-bottom: .75rem; }
+        .row-image-frame { width: 100%; max-width: 150px; aspect-ratio: 1 / 1; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid #ECEFF3; border-radius: 6px; background: #F8FAFC; }
+        .row-image-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .product-row-title { margin: 0 0 .25rem; font-size: 1.05rem; line-height: 1.25; font-weight: 900; color: #101722; }
+        .product-row-desc { margin: .25rem 0 .45rem; color: #56616F; line-height: 1.35; font-size: .9rem; }
+        .product-row-meta { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .4rem; }
+        .product-row-meta span { border: 1px solid #E7EAF0; border-radius: 999px; padding: .22rem .5rem; background: #FBFCFE; color: #2E3744; font-size: .74rem; font-weight: 800; }
+        .inventory-stack { display: grid; gap: .35rem; }
+        .inventory-fact { border: 1px solid #E7EAF0; border-radius: 6px; padding: .45rem .55rem; background: #FBFCFE; }
+        .inventory-fact label { display: block; color: #687386; font-size: .66rem; font-weight: 900; text-transform: uppercase; }
+        .inventory-fact strong { color: #101722; font-size: .9rem; }
         .detail-layout { display: grid; grid-template-columns: minmax(300px, .95fr) minmax(360px, 1.05fr); gap: 1rem; align-items: start; margin-top: .85rem; }
         .detail-shell { min-height: 315px; border: 1px solid #E0E3E8; border-radius: 8px; padding: 1rem; background: #FFFFFF; box-shadow: 0 8px 20px rgba(16,23,34,.06); }
         .detail-title { margin: .35rem 0 .25rem; font-size: 1.55rem; line-height: 1.1; font-weight: 900; color: #101722; }

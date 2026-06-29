@@ -10,6 +10,7 @@ The public site should not expose customer-specific accounts, pricing, order his
 - `.streamlit/config.toml`: Pioneer-aligned Streamlit UI theme defaults.
 - `.gitignore`: Local Python, Streamlit secret, editor, and build artifacts to keep out of Git.
 - `README.md`: Setup, run, deployment, product vision, and QC notes.
+- `DEMO_GUIDE.md`: Presenter guide for the three-app Catalog, Tablet, and WMS demo.
 - `assets/`: Logo and demo product imagery.
 - `data/`: Approved sample product data, plus Stage 2-only demo customer data when needed for tablet-mode work.
 - `modules/`: Streamlit page, catalog, cart, data loading, and styling modules.
@@ -48,12 +49,23 @@ Recommended local development ports:
 ```powershell
 streamlit run app.py --server.port 8501
 streamlit run tablet_app.py --server.port 8502
+streamlit run wms_app.py --server.port 8504
 ```
 
 The tablet app is rep-facing and uses the Stage 2 demo customers in `data/demo_customers.csv`. It includes account selection, customer notes, preferred-category recommendations, field product lookup, quote/order building, and a warehouse handoff preview for the future WMS stage.
 
-For Streamlit Cloud, create a second app from the same GitHub repo and set the main file path to `tablet_app.py`. Keep the public catalog deployed from `app.py`.
+For Streamlit Cloud, create separate apps from the same GitHub repo: keep the public catalog deployed from `app.py`, deploy Taylor's field tablet from `tablet_app.py`, and deploy the WMS from `wms_app.py`.
 
+
+## Stage 3 WMS App
+
+Stage 3 is a separate Streamlit entrypoint for warehouse execution:
+
+```powershell
+streamlit run wms_app.py --server.port 8504
+```
+
+The WMS app is internal/demo-facing. It introduces a command center, pull-ticket queue, inventory-control view, and receiving/replenishment workbench using the shared product catalog data. Locally, tablet handoffs and WMS updates share `data/demo_workflow.sqlite3`, which lets Taylor's submitted field orders appear in the WMS queue. For Streamlit Cloud, use a hosted database such as Supabase/Postgres for cross-app persistence.
 
 ## Internal Design Director
 
@@ -65,7 +77,8 @@ Run the internal developer app separately from the public catalog:
 streamlit run design_director_app.py --server.port 8503
 ```
 
-Do not deploy `design_director_app.py` as the customer-facing Streamlit app. The public catalog remains `app.py`, and Taylor's field tablet remains `tablet_app.py`.
+Do not deploy `design_director_app.py` as the customer-facing Streamlit app. The public catalog remains `app.py`, Taylor's field tablet remains `tablet_app.py`, and warehouse execution remains `wms_app.py`.
+
 ## Local Setup
 
 Use Python 3.10 or newer.

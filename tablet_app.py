@@ -11,6 +11,7 @@ import streamlit as st
 from modules.cart import effective_price
 from modules.data_loader import load_customers, load_products
 from modules.styling import apply_global_styles
+from modules.workflow_store import init_workflow_store, save_handoff_order
 
 
 CATEGORY_MAP = {
@@ -327,6 +328,11 @@ def cart_lines_for_customer(products: pd.DataFrame, customer: dict) -> list[dict
                 "name": row.get("product_name", product_id),
                 "category": row.get("category", ""),
                 "manufacturer": row.get("manufacturer", ""),
+                "manufacturer_part_number": row.get("manufacturer_part_number", ""),
+                "warehouse_location": row.get("warehouse_location", ""),
+                "lead_time": row.get("lead_time", ""),
+                "available_stock": int(row.get("quantity_in_stock", 0) or 0),
+                "reorder_point": int(row.get("reorder_point", 0) or 0),
                 "quantity": int(quantity),
                 "unit_price": unit_price,
                 "line_total": round(unit_price * int(quantity), 2),
@@ -617,7 +623,7 @@ def render_order_builder(customer: dict, products: pd.DataFrame) -> None:
         st.session_state["last_tablet_order_number"] = order_number
         st.session_state["cart"] = {}
         st.session_state["cart_line_details"] = {}
-        st.success(f"Created warehouse handoff preview {order_number}")
+        st.success(f"Created warehouse handoff preview {order_number} and added it to the WMS queue.")
         st.rerun()
 
 
@@ -690,6 +696,7 @@ def render_handoff(products: pd.DataFrame) -> None:
 
 def main() -> None:
     apply_tablet_styles()
+    init_workflow_store()
     init_state()
     products = load_products()
     customers = load_customers()
