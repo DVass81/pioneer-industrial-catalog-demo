@@ -135,24 +135,6 @@ def prepare_catalog_products(products, customer: dict | None = None):
 
 @st.cache_data(show_spinner=False)
 def _image_data_uri(image_ref: str) -> str:
-    image_path = Path(str(image_ref))
-    if not image_path.exists():
-        return ""
-    suffix = image_path.suffix.lower()
-    mime = "image/png" if suffix == ".png" else "image/jpeg"
-    encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
-    return f"data:{mime};base64,{encoded}"
-
-
-def product_image_html(image_ref: str, alt_text: str, frame_class: str) -> str:
-    data_uri = _image_data_uri(str(image_ref))
-    if not data_uri:
-        return f'<div class="{frame_class} image-missing"><span>Image pending</span></div>'
-    return f'<div class="{frame_class}"><img src="{data_uri}" alt="{escape(alt_text)}"></div>'
-
-
-@st.cache_data(show_spinner=False)
-def _image_data_uri(image_ref: str) -> str:
     image_path = ROOT / str(image_ref)
     if not image_path.exists():
         return ""
@@ -268,6 +250,51 @@ def _category_preview(products, category: str) -> str:
     return " | ".join(subcategories[:5]) + (" | more" if len(subcategories) > 5 else "")
 
 
+
+def reset_catalog_browse() -> None:
+    st.session_state["catalog_category"] = "All"
+    st.session_state["catalog_subcategory"] = "All"
+    st.session_state.pop(DETAIL_MODAL_KEY, None)
+
+
+def render_subcategory_buttons(subcategory_options, current_subcategory: str) -> None:
+    if len(subcategory_options) <= 1:
+        return
+    st.markdown("#### Product types")
+    for chunk_start in range(0, len(subcategory_options), 5):
+        cols = st.columns(5)
+        for col, subcategory in zip(cols, subcategory_options[chunk_start : chunk_start + 5]):
+            label = "All types" if subcategory == "All" else subcategory
+            button_label = f"Selected: {label}" if subcategory == current_subcategory else label
+            if col.button(button_label, key=f"subcategory_button_{subcategory}", width="stretch"):
+                st.session_state["catalog_subcategory"] = subcategory
+                st.rerun()
+
+
+def render_compare_table(products) -> None:
+    if products.empty:
+        return
+    with st.expander("Compare products", expanded=False):
+        options = products["product_name"].tolist()
+        selected_names = st.multiselect("Select up to 4 products", options, max_selections=4)
+        if not selected_names:
+            st.caption("Choose products from this result set to compare SKU, manufacturer part, stock, lead time, and warehouse bin.")
+            return
+        selected = products.loc[products["product_name"].isin(selected_names)]
+        rows = [
+            {
+                "Product": row["product_name"],
+                "SKU": row["sku"],
+                "MPN": row["manufacturer_part_number"],
+                "Stock": int(row["quantity_in_stock"]),
+                "Lead time": row["lead_time"],
+                "Bin": row["warehouse_location"],
+                "Type": row["subcategory"],
+            }
+            for _, row in selected.iterrows()
+        ]
+        st.dataframe(rows, width="stretch", hide_index=True)
+
 def render_category_browser(products) -> None:
     categories = sorted(products["category"].unique().tolist())
     st.markdown('<div class="category-browser">', unsafe_allow_html=True)
@@ -301,7 +328,7 @@ def render_catalog_page(products, customer: dict | None = None) -> None:
     st.markdown('<div class="page-kicker">Industrial Catalog</div>', unsafe_allow_html=True)
     st.title("Browse Pioneer supplies by product type")
     st.markdown(
-        '<div class="demo-flow-note">Demo path: choose a category such as Fasteners, open a product detail, add it to the quote cart, then submit a request quote.</div>',
+        '<div class="demo-flow-note">Demo path: choose a category, narrow by product type, compare products, open details, add items to the quote cart, then submit a request quote.</div>',
         unsafe_allow_html=True,
     )
 
@@ -355,25 +382,103 @@ def render_catalog_page(products, customer: dict | None = None) -> None:
 
     filtered = sort_products(filter_products(products, search, category, subcategory, in_stock_only, featured_only), sort_by)
     type_label = "All product types" if subcategory == "All" else subcategory
-    st.markdown(
-        f"""
-        <div class="catalog-summary">
-            <strong>{len(filtered):,} products found</strong>
-            <span>{escape(category)} / {escape(type_label)} / Sorted by {escape(sort_by)}</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+
     if category != "All":
         st.markdown(
-            '<div class="subcategory-strip">' + ''.join(
-                f'<span class="subcategory-pill">{escape(name)}</span>' for name in subcategory_options[1:]
-            ) + '</div>',
+            f'<div class="catalog-breadcrumb">Product Catalog / <strong>{escape(category)}</strong> / {escape(type_label)}</div>',
             unsafe_allow_html=True,
         )
-    render_product_grid(filtered)
+        back_col, view_col, count_col = st.columns([1.2, 1.2, 2.6])
+        if back_col.button("Back to categories", width="stretch"):
+            reset_catalog_browse()
+            st.rerun()
+        view_mode = view_col.segmented_control("View", ["List", "Grid"], default="List", label_visibility="collapsed")
+        count_col.markdown(
+            f'<div class="catalog-summary"><strong>{len(filtered):,} products found</strong><span>{escape(category)} / {escape(type_label)} / {escape(sort_by)}</span></div>',
+            unsafe_allow_html=True,
+        )
+        render_subcategory_buttons(subcategory_options, subcategory)
+    else:
+        view_mode = "List"
+        st.markdown(
+            f"""
+            <div class="catalog-summary">
+                <strong>{len(filtered):,} products found</strong>
+                <span>Search results / Sorted by {escape(sort_by)}</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    render_compare_table(filtered)
+    if view_mode == "Grid":
+        render_product_grid(filtered)
+    else:
+        render_product_list(filtered)
     render_product_detail_modal(products)
 
+def render_product_list(products, customer: dict | None = None) -> None:
+    if products.empty:
+        st.markdown(
+            '<div class="catalog-empty-state"><strong>No products match these filters.</strong><br>Try another product type, clear the stock filter, or search by SKU/manufacturer part number.</div>',
+            unsafe_allow_html=True,
+        )
+        return
+
+    for _, row in products.iterrows():
+        product_id = row["product_id"]
+        badge_text, badge_class = stock_badge(row)
+        in_stock = int(row["quantity_in_stock"]) > 0
+        stock_qty = int(row["quantity_in_stock"])
+        with st.container():
+            st.markdown('<div class="product-row-shell">', unsafe_allow_html=True)
+            image_col, info_col, inv_col, action_col = st.columns([1.05, 3.2, 1.35, 1.25], vertical_alignment="top")
+            with image_col:
+                render_image_frame(row["image_url"], str(row["product_name"]), css_class="row-image-frame")
+            with info_col:
+                featured_tag = '<span class="badge badge-featured">Featured</span>' if bool(row["is_icc_supply"]) else ""
+                st.markdown(
+                    f"""
+                    <div class="product-badges"><span class="{badge_class}">{escape(badge_text)}</span>{featured_tag}</div>
+                    <div class="product-row-title">{escape(str(row['product_name']))}</div>
+                    <div class="detail-subtitle">{escape(str(row['manufacturer']))} | SKU {escape(str(row['sku']))} | MPN {escape(str(row['manufacturer_part_number']))}</div>
+                    <div class="product-row-desc">{escape(str(row['description']))}</div>
+                    <div class="product-row-meta">
+                        <span>{escape(str(row['category']))}</span>
+                        <span>{escape(str(row['subcategory']))}</span>
+                        <span>{escape(str(row['unit_of_measure']))}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with inv_col:
+                st.markdown(
+                    f"""
+                    <div class="inventory-stack">
+                        <div class="inventory-fact"><label>Available</label><strong>{stock_qty:,}</strong></div>
+                        <div class="inventory-fact"><label>Lead time</label><strong>{escape(str(row['lead_time']))}</strong></div>
+                        <div class="inventory-fact"><label>Bin</label><strong>{escape(str(row['warehouse_location']))}</strong></div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with action_col:
+                qty = st.number_input(
+                    "Qty",
+                    min_value=1,
+                    max_value=max(1, stock_qty),
+                    value=1,
+                    step=1,
+                    key=f"row_qty_{product_id}",
+                    disabled=not in_stock,
+                )
+                if st.button("Add to quote", key=f"row_add_{product_id}", width="stretch", disabled=not in_stock):
+                    add_to_cart(product_id, qty)
+                if st.button("Details", key=f"row_detail_{product_id}", width="stretch"):
+                    st.session_state["selected_product_id"] = product_id
+                    st.session_state[DETAIL_MODAL_KEY] = product_id
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
 
 def render_product_grid(products, customer: dict | None = None) -> None:
     if products.empty:
