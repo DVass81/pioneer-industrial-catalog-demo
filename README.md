@@ -11,6 +11,8 @@ The public site should not expose customer-specific accounts, pricing, order his
 - `.gitignore`: Local Python, Streamlit secret, editor, and build artifacts to keep out of Git.
 - `README.md`: Setup, run, deployment, product vision, and QC notes.
 - `DEMO_GUIDE.md`: Presenter guide for the three-app Catalog, Tablet, and WMS demo.
+- `STREAMLIT_DEPLOYMENT.md`: Exact Streamlit Cloud setup checklist for all three apps.
+- `SUPABASE_SCHEMA.md`: Hosted database schema for shared cloud persistence.
 - `assets/`: Logo and demo product imagery.
 - `data/`: Approved sample product data, plus Stage 2-only demo customer data when needed for tablet-mode work.
 - `modules/`: Streamlit page, catalog, cart, data loading, and styling modules.
