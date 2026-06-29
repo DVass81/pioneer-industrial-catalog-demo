@@ -274,7 +274,7 @@ def render_category_browser(products) -> None:
                     """,
                     unsafe_allow_html=True,
                 )
-                if st.button("Browse", key=f"browse_category_{category}", width="stretch"):
+                if st.button(f"Browse {category}", key=f"browse_category_{category}", width="stretch"):
                     st.session_state["catalog_category"] = category
                     st.session_state["catalog_subcategory"] = "All"
                     st.rerun()
@@ -304,7 +304,6 @@ def render_catalog_page(products, customer: dict | None = None) -> None:
             "Category",
             category_options,
             index=category_options.index(st.session_state["catalog_category"]),
-            key="catalog_category_select",
         )
         st.session_state["catalog_category"] = category
         sub_source = products if category == "All" else products.loc[products["category"] == category]
@@ -315,7 +314,6 @@ def render_catalog_page(products, customer: dict | None = None) -> None:
             "Product type",
             subcategory_options,
             index=subcategory_options.index(st.session_state["catalog_subcategory"]),
-            key="catalog_subcategory_select",
         )
         st.session_state["catalog_subcategory"] = subcategory
         sort_by = top[3].selectbox("Sort by", ["Relevance", "Stock", "Category"])
@@ -331,8 +329,8 @@ def render_catalog_page(products, customer: dict | None = None) -> None:
         st.markdown(
             f"""
             <div class="catalog-summary">
-                <strong>Browse {products['category'].nunique()} product categories</strong>
-                <span>{len(products):,} total demo products organized by type</span>
+                <strong>Choose a category below to browse products</strong>
+                <span>{products['category'].nunique()} categories | {len(products):,} products organized by type</span>
             </div>
             """,
             unsafe_allow_html=True,
