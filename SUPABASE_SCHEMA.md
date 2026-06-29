@@ -1,5 +1,7 @@
 # Supabase Workflow Schema
 
+Pioneer project: Pioneer Industrial Demo (dujcsbzqznucqpuyjsdy), separate from CBS Intelligence Pilot.
+
 Use this schema when moving the local demo workflow store from SQLite to Supabase/Postgres.
 
 This data is operational/internal. Do not expose the service role key in browser code. In this Streamlit app, secrets belong in Streamlit Cloud secrets.

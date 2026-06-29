@@ -50,9 +50,16 @@ Local demo handoff uses SQLite at `data/demo_workflow.sqlite3`. Streamlit Cloud 
 When Supabase/Postgres is ready, add these secrets to all three Streamlit apps:
 
 ```toml
-SUPABASE_URL = "https://YOUR-PROJECT.supabase.co"
+SUPABASE_URL = "https://dujcsbzqznucqpuyjsdy.supabase.co"
 SUPABASE_SERVICE_ROLE_KEY = "YOUR-SERVICE-ROLE-KEY"
 WORKFLOW_BACKEND = "supabase"
 ```
 
 Keep these values in Streamlit Secrets only. Do not commit them to GitHub.
+
+## Pioneer Supabase Project
+
+- Project name: Pioneer Industrial Demo (separate from CBS Intelligence Pilot)
+- Project ref: dujcsbzqznucqpuyjsdy 
+- Region: us-east-2 
+- Database tables created: ield_orders, ield_order_lines, wms_ticket_events 
