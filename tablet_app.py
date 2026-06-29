@@ -29,6 +29,12 @@ CATEGORY_MAP = {
     "Material Handling": "Material Handling",
 }
 
+SUBSTITUTION_PREFERENCES = [
+    "Use closest stocked equivalent",
+    "Call customer before substituting",
+    "No substitutions",
+]
+
 ROOT = Path(__file__).resolve().parent
 IMAGE_MIME_TYPES = {
     ".jpg": "image/jpeg",
@@ -76,12 +82,22 @@ def apply_tablet_styles() -> None:
         .tablet-product p { min-height: 3.2rem; color: #59615b; font-size: .84rem; }
         .tablet-product-meta { color: #59615b; font-size: .86rem; line-height: 1.35; }
         .tablet-product-meta strong { color: #252826; }
+        .tablet-detail { border: 1px solid #d9ddd6; border-radius: 8px; padding: 1rem; background: #ffffff; box-shadow: 0 8px 20px rgba(37,40,38,.06); margin: .85rem 0 1rem; }
+        .tablet-detail-grid { display: grid; grid-template-columns: minmax(220px, .75fr) minmax(0, 1.25fr); gap: 1rem; align-items: start; }
+        .tablet-detail-image { width: 100%; aspect-ratio: 4 / 3; border: 1px solid #e3e6df; border-radius: 8px; background: #f8faf7; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .tablet-detail-image img { width: 100%; height: 100%; object-fit: contain; display: block; padding: .65rem; }
+        .tablet-detail h3 { margin: .35rem 0 .45rem; color: #252826; line-height: 1.2; }
+        .tablet-detail p { color: #59615b; line-height: 1.45; margin: .45rem 0; }
+        .tablet-detail-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; margin-top: .75rem; }
+        .tablet-detail-fact { border: 1px solid #e3e6df; border-radius: 8px; padding: .6rem; background: #f8faf7; }
+        .tablet-detail-fact label { display: block; color: #59615b; font-size: .68rem; font-weight: 900; text-transform: uppercase; }
+        .tablet-detail-fact strong { display: block; color: #252826; margin-top: .15rem; line-height: 1.2; overflow-wrap: anywhere; }
         .visit-prep { border: 1px solid #d9ddd6; border-radius: 8px; padding: 1rem; background: #ffffff; box-shadow: 0 8px 20px rgba(37,40,38,.06); }
         .visit-prep h3 { margin: 0 0 .35rem; }
         .visit-prep p { margin: 0 0 .35rem; color: #59615b; }
         .handoff-box { border-left: 5px solid #4c6444; border-radius: 8px; padding: 1rem; background: #f4f7f2; }
         @media (max-width: 900px) {
-            .tablet-hero-grid, .tablet-account-strip { grid-template-columns: 1fr; }
+            .tablet-hero-grid, .tablet-account-strip, .tablet-detail-grid, .tablet-detail-facts { grid-template-columns: 1fr; }
         }
         </style>
         """,
@@ -92,9 +108,11 @@ def apply_tablet_styles() -> None:
 def init_state() -> None:
     defaults = {
         "cart": {},
+        "cart_line_details": {},
         "quote_counter": 2001,
         "tablet_orders": [],
         "selected_customer_name": None,
+        "selected_product_id": None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -152,8 +170,97 @@ def account_price_label(row, customer: dict) -> str:
 def add_to_tablet_cart(product_id: str, quantity: int) -> None:
     quantity = max(1, int(quantity))
     cart = st.session_state.setdefault("cart", {})
+    details = st.session_state.setdefault("cart_line_details", {})
     cart[product_id] = cart.get(product_id, 0) + quantity
+    details.setdefault(
+        product_id,
+        {
+            "quote_note": "",
+            "substitution_preference": SUBSTITUTION_PREFERENCES[0],
+        },
+    )
     st.toast("Added to Taylor's field order")
+
+
+def clear_cart_line_detail(product_id: str) -> None:
+    st.session_state.setdefault("cart_line_details", {}).pop(product_id, None)
+    st.session_state.pop(f"tablet_line_note_{product_id}", None)
+    st.session_state.pop(f"tablet_line_substitution_{product_id}", None)
+
+def product_image_html(row, css_class: str, empty_label: str = "No product image") -> str:
+    image_ref = str(row.get("image_url") or row.get("image_ref") or "")
+    src = image_src(image_ref) if image_ref else ""
+    if not src:
+        return f'<div class="{css_class}">{escape(empty_label)}</div>'
+    product_name = escape(str(row.get("product_name", "Product image")))
+    return f'<div class="{css_class}"><img src="{escape(src)}" alt="{product_name}"></div>'
+
+
+def product_fact(label: str, value: object) -> str:
+    text = str(value).strip() if value is not None else ""
+    return (
+        '<div class="tablet-detail-fact">'
+        f'<label>{escape(label)}</label>'
+        f'<strong>{escape(text or "Not provided")}</strong>'
+        '</div>'
+    )
+
+
+def render_selected_product_detail(products: pd.DataFrame, customer: dict, key_prefix: str) -> None:
+    product_id = st.session_state.get("selected_product_id")
+    if not product_id:
+        return
+
+    match = products.loc[products["product_id"] == product_id]
+    if match.empty:
+        st.session_state["selected_product_id"] = None
+        st.info("That product is no longer available in the current catalog.")
+        return
+
+    row = match.iloc[0]
+    stock = max(0, int(row.get("quantity_in_stock", 0) or 0))
+    price_label = account_price_label(row, customer)
+    facts = "".join(
+        [
+            product_fact("SKU", row.get("sku", row.get("SKU / Pioneer part number", product_id))),
+            product_fact("Manufacturer", row.get("manufacturer", "")),
+            product_fact("Category", row.get("category", "")),
+            product_fact("Stock", f"{stock:,} on hand" if stock > 0 else "Out of stock"),
+            product_fact("Account price", price_label),
+            product_fact("Mfr part", row.get("manufacturer_part_number", "")),
+        ]
+    )
+    st.markdown(
+        f"""
+        <div class="tablet-detail">
+            <div class="tablet-detail-grid">
+                {product_image_html(row, "tablet-detail-image")}
+                <div>
+                    <span class="tablet-pill">{escape(str(row.get('category', 'Product')))}</span>
+                    <h3>{escape(str(row.get('product_name', product_id)))}</h3>
+                    <p>{escape(str(row.get('description', 'No description available.')))}</p>
+                    <div class="tablet-detail-facts">{facts}</div>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    detail_cols = st.columns([1, 1, 2])
+    qty = detail_cols[0].number_input(
+        "Quantity",
+        min_value=1,
+        max_value=max(1, stock),
+        value=1,
+        step=1,
+        key=f"{key_prefix}_detail_qty_{product_id}",
+        disabled=stock <= 0,
+    )
+    if detail_cols[1].button("Add to cart", key=f"{key_prefix}_detail_add_{product_id}", width="stretch", disabled=stock <= 0):
+        add_to_tablet_cart(str(product_id), qty)
+    if detail_cols[2].button("Close details", key=f"{key_prefix}_detail_close_{product_id}"):
+        st.session_state["selected_product_id"] = None
+        st.rerun()
 
 
 def preferred_categories(customer: dict, available_categories: list[str]) -> list[str]:
@@ -166,6 +273,19 @@ def preferred_categories(customer: dict, available_categories: list[str]) -> lis
     return mapped or available_categories[:4]
 
 
+
+def reset_tablet_cart_for_customer(customer: dict) -> None:
+    customer_id = customer_field(customer, "customer_id", customer_field(customer, "customer_name"))
+    active_customer_id = st.session_state.get("active_cart_customer_id")
+    if active_customer_id is None:
+        st.session_state["active_cart_customer_id"] = customer_id
+        return
+    if active_customer_id != customer_id:
+        st.session_state["cart"] = {}
+        st.session_state["cart_line_details"] = {}
+        st.session_state["selected_product_id"] = None
+        st.session_state["active_cart_customer_id"] = customer_id
+        st.toast("Started a fresh tablet cart for this customer")
 def customer_selector(customers: pd.DataFrame) -> dict:
     names = customers["customer_name"].tolist()
     if not names:
@@ -179,17 +299,27 @@ def customer_selector(customers: pd.DataFrame) -> dict:
         index=names.index(st.session_state["selected_customer_name"]),
     )
     st.session_state["selected_customer_name"] = selected
-    return customers.loc[customers["customer_name"] == selected].iloc[0].to_dict()
+    customer = customers.loc[customers["customer_name"] == selected].iloc[0].to_dict()
+    reset_tablet_cart_for_customer(customer)
+    return customer
 
 
 def cart_lines_for_customer(products: pd.DataFrame, customer: dict) -> list[dict]:
     lines = []
+    line_details = st.session_state.setdefault("cart_line_details", {})
     for product_id, quantity in st.session_state.get("cart", {}).items():
         match = products.loc[products["product_id"] == product_id]
         if match.empty:
             continue
         row = match.iloc[0]
         unit_price = account_price(row, customer)
+        details = line_details.setdefault(
+            product_id,
+            {
+                "quote_note": "",
+                "substitution_preference": SUBSTITUTION_PREFERENCES[0],
+            },
+        )
         lines.append(
             {
                 "product_id": product_id,
@@ -200,10 +330,11 @@ def cart_lines_for_customer(products: pd.DataFrame, customer: dict) -> list[dict
                 "quantity": int(quantity),
                 "unit_price": unit_price,
                 "line_total": round(unit_price * int(quantity), 2),
+                "quote_note": str(details.get("quote_note", "")).strip(),
+                "substitution_preference": details.get("substitution_preference", SUBSTITUTION_PREFERENCES[0]),
             }
         )
     return lines
-
 
 def customer_subtotal(products: pd.DataFrame, customer: dict) -> float:
     return round(sum(line["line_total"] for line in cart_lines_for_customer(products, customer)), 2)
@@ -283,6 +414,7 @@ def render_dashboard(customer: dict, products: pd.DataFrame) -> None:
 
     st.markdown("### Recommended for this visit")
     recommended = products.loc[products["category"].isin(prefs)].sort_values(["is_icc_supply", "quantity_in_stock"], ascending=[False, False]).head(6)
+    render_selected_product_detail(products, customer, key_prefix="rec")
     render_product_tiles(recommended, customer, key_prefix="rec")
 
 
@@ -294,12 +426,7 @@ def render_product_tiles(rows: pd.DataFrame, customer: dict, key_prefix: str) ->
         cols = st.columns(3)
         for col, (_, row) in zip(cols, rows.iloc[chunk_start : chunk_start + 3].iterrows()):
             with col:
-                image_ref = str(row.get("image_url") or row.get("image_ref") or "")
-                image_markup = ""
-                src = image_src(image_ref) if image_ref else ""
-                if src:
-                    product_name = escape(str(row["product_name"]))
-                    image_markup = f'<div class="tablet-product-image"><img src="{escape(src)}" alt="{product_name}"></div>'
+                image_markup = product_image_html(row, "tablet-product-image", empty_label="")
                 st.markdown(
                     f"""
                     <div class="tablet-product">
@@ -318,7 +445,11 @@ def render_product_tiles(rows: pd.DataFrame, customer: dict, key_prefix: str) ->
                 )
                 stock = max(0, int(row["quantity_in_stock"]))
                 qty = st.number_input("Qty", min_value=1, max_value=max(1, stock), value=1, step=1, key=f"{key_prefix}_qty_{row['product_id']}", disabled=stock <= 0)
-                if st.button("Add", key=f"{key_prefix}_add_{row['product_id']}", width="stretch", disabled=stock <= 0):
+                action_cols = st.columns([1, 1])
+                if action_cols[0].button("View details", key=f"{key_prefix}_view_{row['product_id']}", width="stretch"):
+                    st.session_state["selected_product_id"] = row["product_id"]
+                    st.rerun()
+                if action_cols[1].button("Add", key=f"{key_prefix}_add_{row['product_id']}", width="stretch", disabled=stock <= 0):
                     add_to_tablet_cart(row["product_id"], qty)
 
 
@@ -341,6 +472,7 @@ def render_lookup(customer: dict, products: pd.DataFrame) -> None:
     if in_stock:
         filtered = filtered.loc[filtered["quantity_in_stock"] > 0]
     st.caption(f"{len(filtered)} products found")
+    render_selected_product_detail(products, customer, key_prefix="lookup")
     render_product_tiles(filtered.head(24), customer, key_prefix="lookup")
 
 
@@ -415,18 +547,51 @@ def render_order_builder(customer: dict, products: pd.DataFrame) -> None:
     if not lines:
         st.info("No products added yet. Use Dashboard recommendations or Product Lookup to build the order.")
         return
+    line_details = st.session_state.setdefault("cart_line_details", {})
     for line in lines:
+        product_id = line["product_id"]
+        details = line_details.setdefault(
+            product_id,
+            {
+                "quote_note": "",
+                "substitution_preference": SUBSTITUTION_PREFERENCES[0],
+            },
+        )
         with st.container(border=True):
             cols = st.columns([3, 1, 1, 1])
             cols[0].markdown(f"**{line['name']}**  \n`{line['sku']}`")
-            stock_match = products.loc[products["product_id"] == line["product_id"]]
+            stock_match = products.loc[products["product_id"] == product_id]
             available_stock = int(stock_match.iloc[0]["quantity_in_stock"]) if not stock_match.empty else line["quantity"]
-            new_qty = cols[1].number_input("Qty", min_value=1, max_value=max(1, available_stock), value=min(line["quantity"], max(1, available_stock)), key=f"tablet_cart_qty_{line['product_id']}")
-            st.session_state["cart"][line["product_id"]] = int(new_qty)
+            new_qty = cols[1].number_input("Qty", min_value=1, max_value=max(1, available_stock), value=min(line["quantity"], max(1, available_stock)), key=f"tablet_cart_qty_{product_id}")
+            st.session_state["cart"][product_id] = int(new_qty)
             cols[2].markdown(f"**{money(line['unit_price'])}**  \n{money(line['unit_price'] * int(new_qty))}")
-            if cols[3].button("Remove", key=f"tablet_remove_{line['product_id']}"):
-                st.session_state["cart"].pop(line["product_id"], None)
+            if cols[3].button("Remove", key=f"tablet_remove_{product_id}"):
+                st.session_state["cart"].pop(product_id, None)
+                clear_cart_line_detail(product_id)
                 st.rerun()
+            detail_cols = st.columns([2, 1])
+            note_key = f"tablet_line_note_{product_id}"
+            st.session_state.setdefault(note_key, str(details.get("quote_note", "")))
+            note = detail_cols[0].text_area(
+                "Line note",
+                placeholder="Quote note for warehouse or customer follow-up.",
+                key=note_key,
+                height=80,
+            )
+            current_preference = details.get("substitution_preference", SUBSTITUTION_PREFERENCES[0])
+            if current_preference not in SUBSTITUTION_PREFERENCES:
+                current_preference = SUBSTITUTION_PREFERENCES[0]
+            substitution_key = f"tablet_line_substitution_{product_id}"
+            st.session_state.setdefault(substitution_key, current_preference)
+            substitution = detail_cols[1].selectbox(
+                "Substitution",
+                SUBSTITUTION_PREFERENCES,
+                key=substitution_key,
+            )
+            line_details[product_id] = {
+                "quote_note": note,
+                "substitution_preference": substitution,
+            }
     st.markdown(f"### Account estimated subtotal: {money(customer_subtotal(products, customer))}")
 
     with st.form("tablet_handoff_form"):
@@ -451,6 +616,7 @@ def render_order_builder(customer: dict, products: pd.DataFrame) -> None:
         st.session_state.setdefault("tablet_orders", []).append(handoff_order)
         st.session_state["last_tablet_order_number"] = order_number
         st.session_state["cart"] = {}
+        st.session_state["cart_line_details"] = {}
         st.success(f"Created warehouse handoff preview {order_number}")
         st.rerun()
 
@@ -499,9 +665,14 @@ def render_handoff(products: pd.DataFrame) -> None:
                 "SKU": line.get("sku", ""),
                 "Product": line.get("name", ""),
                 "Category": line.get("category", ""),
+                "Mfr Part": line.get("manufacturer_part_number", ""),
+                "Bin": line.get("warehouse_location", ""),
+                "Lead Time": line.get("lead_time", ""),
                 "Qty": line.get("quantity", 0),
                 "Unit": money(line.get("unit_price", 0)),
                 "Line total": money(line.get("line_total", 0)),
+                "Substitution": line.get("substitution_preference", ""),
+                "Line note": line.get("quote_note", ""),
             }
             for line in order.get("lines", [])
         ]
@@ -528,7 +699,6 @@ def main() -> None:
     page = st.sidebar.radio(
         "Tablet workflow",
         ["Dashboard", "Product Lookup", "Order Builder", "Warehouse Handoff"],
-        label_visibility="collapsed",
     )
     st.sidebar.divider()
     st.sidebar.caption("Stage 2 demo only. No live ERP, payment, or warehouse integration yet.")
